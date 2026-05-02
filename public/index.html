@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Đọc mã Hotmail Graph</title>
+    <link rel="stylesheet" href="/styles.css">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">HG</span>
+        <div>
+          <h1>Đọc mã Hotmail Graph</h1>
+          <p id="serverMeta">Đang kết nối...</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <span id="summaryBadge" class="summary-badge">0 / 0</span>
+        <button id="copyAllBtn" class="icon-button" type="button" title="Sao chép kết quả">
+          <i data-lucide="copy"></i>
+          <span>Sao chép</span>
+        </button>
+        <button id="exportBtn" class="icon-button" type="button" title="Xuất CSV">
+          <i data-lucide="download"></i>
+          <span>CSV</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section class="panel input-panel">
+        <div class="panel-head">
+          <div>
+            <h2>Dữ liệu đầu vào</h2>
+            <p id="lineCount">0 tài khoản</p>
+          </div>
+          <div class="panel-actions">
+            <button id="formatBtn" class="ghost-button" type="button" title="Chuẩn hóa mỗi tài khoản một dòng">
+              <i data-lucide="list-filter"></i>
+              <span>Chuẩn hóa</span>
+            </button>
+            <button id="clearBtn" class="ghost-button" type="button" title="Xóa dữ liệu">
+              <i data-lucide="x"></i>
+              <span>Xóa</span>
+            </button>
+          </div>
+        </div>
+
+        <label class="field-label" for="accountInput">Tài khoản</label>
+        <textarea id="accountInput" spellcheck="false" placeholder="email|password|refresh_token|client_id"></textarea>
+        <div id="accountPreview" class="account-preview">
+          <div class="account-preview-empty">Chưa có tài khoản</div>
+        </div>
+
+        <div id="accessBox" class="access-box hidden">
+          <label class="field-label" for="accessToken">Mã truy cập</label>
+          <input id="accessToken" type="password" autocomplete="current-password" placeholder="ACCESS_TOKEN">
+        </div>
+
+        <div class="control-grid">
+          <label>
+            <span>Nguồn đọc</span>
+            <select id="providerSelect">
+              <option value="direct" selected>Microsoft Graph</option>
+              <option value="oauth2">DongVan OAuth2</option>
+              <option value="dongvan">DongVan Graph API</option>
+              <option value="dongvan_fallback">DongVan Graph + fallback</option>
+            </select>
+          </label>
+          <label>
+            <span>Loại mã</span>
+            <select id="typeSelect">
+              <option value="all" selected>Tất cả</option>
+              <option value="openai">OpenAI</option>
+              <option value="facebook">Facebook</option>
+              <option value="instagram">Instagram</option>
+              <option value="twitter">Twitter/X</option>
+              <option value="apple">Apple</option>
+              <option value="tiktok">TikTok</option>
+              <option value="amazon">Amazon</option>
+              <option value="lazada">Lazada</option>
+              <option value="kakaotalk">KakaoTalk</option>
+              <option value="google">Google</option>
+              <option value="shopee">Shopee</option>
+              <option value="telegram">Telegram</option>
+              <option value="wechat">WeChat</option>
+            </select>
+          </label>
+          <label>
+            <span>Số luồng</span>
+            <input id="concurrencyInput" type="number" min="1" max="50" value="10">
+          </label>
+        </div>
+
+        <div class="run-row">
+          <button id="startBtn" class="primary-button" type="button">
+            <i data-lucide="play"></i>
+            <span>Đọc hòm thư</span>
+          </button>
+          <button id="stopBtn" class="danger-button" type="button" disabled>
+            <i data-lucide="square"></i>
+            <span>Dừng</span>
+          </button>
+        </div>
+
+        <div class="progress" aria-hidden="true">
+          <div id="progressBar"></div>
+        </div>
+      </section>
+
+      <section class="panel result-panel">
+        <div class="panel-head result-head">
+          <div>
+            <h2>Kết quả</h2>
+            <p id="runStatus">Sẵn sàng</p>
+          </div>
+          <div class="stats">
+            <span class="stat-ok"><b id="okCount">0</b> OK</span>
+            <span class="stat-fail"><b id="failCount">0</b> lỗi</span>
+          </div>
+        </div>
+
+        <div class="quick-copy">
+          <button id="copyEmailBtn" class="secondary-button" type="button" title="Sao chép danh sách email đã xử lý">
+            <i data-lucide="mail"></i>
+            <span>Copy email</span>
+          </button>
+          <button id="copyCodeBtn" class="secondary-button" type="button" title="Sao chép danh sách mã OTP">
+            <i data-lucide="key-round"></i>
+            <span>Copy OTP</span>
+          </button>
+          <button id="copyPairBtn" class="secondary-button" type="button" title="Sao chép theo dạng email|otp">
+            <i data-lucide="list-checks"></i>
+            <span>Email|OTP</span>
+          </button>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Email</th>
+                <th>Người gửi</th>
+                <th>Thời gian</th>
+                <th>Nội dung</th>
+                <th>Mã</th>
+                <th>Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody id="resultBody">
+              <tr>
+                <td class="empty-state" colspan="7">Chưa có kết quả</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <dialog id="contentDialog">
+      <form method="dialog" class="dialog-box">
+        <div class="dialog-head">
+          <h2>Nội dung đầy đủ</h2>
+          <button class="ghost-icon" value="cancel" title="Đóng">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <pre id="dialogContent"></pre>
+      </form>
+    </dialog>
+  </body>
+</html>
