@@ -193,8 +193,17 @@ function normalizeAccountLine(value) {
 
 function extractCodeFromText(value) {
   const text = String(value || "");
+  const dashed = text.match(/\b[A-Z0-9]{3}\s*-\s*[A-Z0-9]{3}\b/i);
+  if (dashed) {
+    return dashed[0].replace(/\s*-\s*/g, "-").toUpperCase();
+  }
+
   const preferred = text.match(/(?<!\d)\d{4,8}(?!\d)/);
   return preferred ? preferred[0] : "";
+}
+
+function isDashedCode(value) {
+  return /^[A-Z0-9]{3}-[A-Z0-9]{3}$/i.test(String(value || "").trim());
 }
 
 function decodeHtmlEntities(value) {
@@ -290,7 +299,9 @@ function normalizeMailMessage(message) {
 function normalizeDongVanResponse(account, type, httpStatus, body) {
   const ok = Boolean(body && body.status);
   const content = body?.content || body?.message || "";
-  const code = body?.code || extractCodeFromText(content);
+  const extractedCode = extractCodeFromText(content);
+  const responseCode = String(body?.code || "").trim();
+  const code = isDashedCode(extractedCode) ? extractedCode : responseCode || extractedCode;
 
   return {
     status: ok,
