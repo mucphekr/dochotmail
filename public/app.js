@@ -4,12 +4,18 @@ const state = {
   results: [],
   running: false,
   stopped: false,
-  completed: 0
+  completed: 0,
+  totpItems: [],
+  totpTimer: null
 };
 
 const $ = (selector) => document.querySelector(selector);
 
 const els = {
+  mailViewBtn: $("#mailViewBtn"),
+  twofaViewBtn: $("#twofaViewBtn"),
+  mailWorkspace: $("#mailWorkspace"),
+  twofaWorkspace: $("#twofaWorkspace"),
   serverMeta: $("#serverMeta"),
   summaryBadge: $("#summaryBadge"),
   copyAllBtn: $("#copyAllBtn"),
@@ -35,13 +41,20 @@ const els = {
   copyPairBtn: $("#copyPairBtn"),
   resultBody: $("#resultBody"),
   contentDialog: $("#contentDialog"),
-  dialogContent: $("#dialogContent")
+  dialogContent: $("#dialogContent"),
+  totpInput: $("#totpInput"),
+  totpGenerateBtn: $("#totpGenerateBtn"),
+  totpClearBtn: $("#totpClearBtn"),
+  totpGrid: $("#totpGrid"),
+  totpStatus: $("#totpStatus")
 };
 
 const EMAIL_PATTERN = "[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\\.[a-zA-Z0-9-]+)+";
 const UUID_PATTERN = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
 const EMAIL_RE = new RegExp(EMAIL_PATTERN, "g");
 const ACCOUNT_UUID_RE = new RegExp(`${EMAIL_PATTERN}\\|[\\s\\S]*?\\|${UUID_PATTERN}(?=[\\s,;]*${EMAIL_PATTERN}|[\\s,;]*$)`, "g");
+const TOTP_PERIOD_SECONDS = 30;
+const TOTP_DIGITS = 6;
 
 function refreshIcons() {
   if (window.lucide) {
@@ -116,6 +129,19 @@ function setStatus(message, tone = "muted") {
   els.runStatus.dataset.tone = tone;
 }
 
+function setTotpStatus(message, tone = "muted") {
+  els.totpStatus.textContent = message;
+  els.totpStatus.dataset.tone = tone;
+}
+
+function switchView(view) {
+  const showTwofa = view === "twofa";
+  els.mailWorkspace.classList.toggle("hidden", showTwofa);
+  els.twofaWorkspace.classList.toggle("hidden", !showTwofa);
+  els.mailViewBtn.classList.toggle("active", !showTwofa);
+  els.twofaViewBtn.classList.toggle("active", showTwofa);
+}
+
 function updateLineCount() {
   const accounts = accountItems();
   const count = accounts.length;
@@ -180,6 +206,218 @@ function preview(value) {
   const text = String(value || "").replace(/\s+/g, " ").trim();
   if (!text) return "";
   return text.length > 92 ? `${text.slice(0, 92)}...` : text;
+}
+
+function cleanTotpSecret(value) {
+  return String(value || "")
+    .replace(/\s+/g, "")
+    .replace(/-/g, "")
+    .replace(/=+$/g, "")
+    .toUpperCase();
+}
+
+function isValidTotpSecret(value) {
+  const secret = cleanTotpSecret(value);
+  return secret.length >= 8 && /^[A-Z2-7]+$/.test(secret);
+}
+
+function extractTotpSecret(rawValue) {
+  const raw = String(rawValue || "").trim();
+  if (!raw) return null;
+
+  if (/^otpauth:\/\//i.test(raw)) {
+    try {
+      const url = new URL(raw);
+      const secret = cleanTotpSecret(url.searchParams.get("secret"));
+      const label = decodeURIComponent(url.pathname.replace(/^\/+/, "") || "Google 2FA");
+      return isValidTotpSecret(secret) ? { secret, label } : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  const parts = raw.split("|").map((part) => part.trim()).filter(Boolean);
+  for (let index = parts.length - 1; index >= 0; index -= 1) {
+    const secret = cleanTotpSecret(parts[index]);
+    if (isValidTotpSecret(secret)) {
+      return {
+        secret,
+        label: parts.length > 1 ? parts.filter((_, partIndex) => partIndex !== index).join(" | ") : secret
+      };
+    }
+  }
+
+  const secret = cleanTotpSecret(raw);
+  return isValidTotpSecret(secret) ? { secret, label: secret } : null;
+}
+
+function parseTotpInput(value) {
+  const seen = new Set();
+  return String(value || "")
+    .split(/\r?\n|,|;/)
+    .map(extractTotpSecret)
+    .filter(Boolean)
+    .filter((item) => {
+      if (seen.has(item.secret)) return false;
+      seen.add(item.secret);
+      return true;
+    });
+}
+
+function base32ToBytes(base32) {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  const bits = [];
+  const bytes = [];
+
+  for (const char of cleanTotpSecret(base32)) {
+    const value = alphabet.indexOf(char);
+    if (value === -1) return null;
+    for (let bit = 4; bit >= 0; bit -= 1) {
+      bits.push((value >> bit) & 1);
+    }
+  }
+
+  for (let index = 0; index + 8 <= bits.length; index += 8) {
+    let byte = 0;
+    for (let bit = 0; bit < 8; bit += 1) {
+      byte = (byte << 1) | bits[index + bit];
+    }
+    bytes.push(byte);
+  }
+
+  return new Uint8Array(bytes);
+}
+
+async function generateTotpCode(secret) {
+  if (!window.crypto?.subtle) {
+    throw new Error("Trình duyệt không hỗ trợ tạo mã 2FA.");
+  }
+
+  const keyBytes = base32ToBytes(secret);
+  if (!keyBytes?.length) {
+    throw new Error("Khóa 2FA không hợp lệ.");
+  }
+
+  const key = await window.crypto.subtle.importKey(
+    "raw",
+    keyBytes,
+    { name: "HMAC", hash: "SHA-1" },
+    false,
+    ["sign"]
+  );
+
+  const counter = Math.floor(Date.now() / 1000 / TOTP_PERIOD_SECONDS);
+  const buffer = new ArrayBuffer(8);
+  const view = new DataView(buffer);
+  view.setUint32(4, counter);
+
+  const hmac = new Uint8Array(await window.crypto.subtle.sign("HMAC", key, buffer));
+  const offset = hmac[hmac.length - 1] & 0x0f;
+  const binary =
+    ((hmac[offset] & 0x7f) << 24) |
+    ((hmac[offset + 1] & 0xff) << 16) |
+    ((hmac[offset + 2] & 0xff) << 8) |
+    (hmac[offset + 3] & 0xff);
+
+  return String(binary % 10 ** TOTP_DIGITS).padStart(TOTP_DIGITS, "0");
+}
+
+function renderTotpEmpty(message = "Chưa có mã 2FA") {
+  els.totpGrid.innerHTML = `<div class="totp-empty">${escapeHtml(message)}</div>`;
+}
+
+function renderTotpCards() {
+  if (!state.totpItems.length) {
+    renderTotpEmpty();
+    return;
+  }
+
+  els.totpGrid.innerHTML = state.totpItems
+    .map((item, index) => {
+      const shortLabel = item.label.length > 28 ? `${item.label.slice(0, 28)}...` : item.label;
+      return `
+        <article class="totp-card" data-totp-index="${index}">
+          <div class="totp-card-head">
+            <span class="totp-label" title="${escapeHtml(item.label)}">${escapeHtml(shortLabel)}</span>
+            <span class="totp-time" data-totp-time="${index}">30s</span>
+          </div>
+          <div class="totp-code-row">
+            <strong class="totp-code" data-totp-code="${index}">------</strong>
+            <button class="tiny-copy" data-copy-totp="${index}" type="button" title="Copy mã 2FA">Copy</button>
+          </div>
+          <div class="totp-progress" aria-hidden="true">
+            <div data-totp-progress="${index}"></div>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+async function updateTotpCards() {
+  if (!state.totpItems.length) return;
+
+  const seconds = Math.floor(Date.now() / 1000);
+  const timeLeft = TOTP_PERIOD_SECONDS - (seconds % TOTP_PERIOD_SECONDS);
+  const progressWidth = `${Math.round((timeLeft / TOTP_PERIOD_SECONDS) * 100)}%`;
+
+  await Promise.all(state.totpItems.map(async (item, index) => {
+    if (timeLeft === TOTP_PERIOD_SECONDS || !item.code) {
+      item.code = await generateTotpCode(item.secret);
+    }
+
+    const codeEl = els.totpGrid.querySelector(`[data-totp-code="${index}"]`);
+    const timeEl = els.totpGrid.querySelector(`[data-totp-time="${index}"]`);
+    const progressEl = els.totpGrid.querySelector(`[data-totp-progress="${index}"]`);
+    if (codeEl) codeEl.textContent = item.code;
+    if (timeEl) timeEl.textContent = `${timeLeft}s`;
+    if (progressEl) progressEl.style.width = progressWidth;
+  }));
+}
+
+function stopTotpTimer() {
+  if (state.totpTimer) {
+    clearInterval(state.totpTimer);
+    state.totpTimer = null;
+  }
+}
+
+async function startTotp() {
+  const items = parseTotpInput(els.totpInput.value);
+  stopTotpTimer();
+  state.totpItems = [];
+
+  if (!items.length) {
+    renderTotpEmpty("Khóa 2FA không hợp lệ");
+    setTotpStatus("Khóa 2FA không hợp lệ", "error");
+    return;
+  }
+
+  state.totpItems = items.map((item) => ({ ...item, code: "" }));
+  renderTotpCards();
+
+  try {
+    await updateTotpCards();
+    state.totpTimer = setInterval(() => {
+      updateTotpCards().catch((error) => {
+        stopTotpTimer();
+        setTotpStatus(error.message, "error");
+      });
+    }, 1000);
+    setTotpStatus(`Đang hiển thị ${items.length.toLocaleString()} mã 2FA`, "ok");
+  } catch (error) {
+    stopTotpTimer();
+    renderTotpEmpty(error.message);
+    setTotpStatus(error.message, "error");
+  }
+}
+
+function clearTotp() {
+  stopTotpTimer();
+  state.totpItems = [];
+  els.totpInput.value = "";
+  renderTotpEmpty();
+  setTotpStatus("Sẵn sàng");
 }
 
 async function api(path, options = {}) {
@@ -538,6 +776,8 @@ async function loadConfig() {
 }
 
 function bindEvents() {
+  els.mailViewBtn.addEventListener("click", () => switchView("mail"));
+  els.twofaViewBtn.addEventListener("click", () => switchView("twofa"));
   els.accountInput.addEventListener("input", updateLineCount);
   els.formatBtn.addEventListener("click", formatAccounts);
   els.clearBtn.addEventListener("click", () => {
@@ -552,6 +792,24 @@ function bindEvents() {
   els.copyCodeBtn.addEventListener("click", (event) => copyQuick("code", event.currentTarget));
   els.copyPairBtn.addEventListener("click", (event) => copyQuick("pair", event.currentTarget));
   els.exportBtn.addEventListener("click", exportCsv);
+  els.totpGenerateBtn.addEventListener("click", startTotp);
+  els.totpClearBtn.addEventListener("click", clearTotp);
+  els.totpInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+      startTotp();
+    }
+  });
+  els.totpGrid.addEventListener("click", async (event) => {
+    const copyTotp = event.target.closest("[data-copy-totp]");
+    if (!copyTotp) return;
+
+    const item = state.totpItems[Number(copyTotp.dataset.copyTotp)];
+    if (!item?.code) return;
+
+    const copied = await copyText(item.code);
+    if (copied) flashCopyButton(copyTotp);
+    setTotpStatus("Đã sao chép mã 2FA", "ok");
+  });
   els.resultBody.addEventListener("click", async (event) => {
     const copy = event.target.closest("[data-copy-code]");
     const copyEmail = event.target.closest("[data-copy-email]");

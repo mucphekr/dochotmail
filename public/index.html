@@ -15,7 +15,8 @@
           <i data-lucide="mailbox"></i>
           <span>Mail Tool</span>
         </a>
-        <button class="menu-button active" type="button">Đọc mail</button>
+        <button id="mailViewBtn" class="menu-button active" type="button">Đọc mail</button>
+        <button id="twofaViewBtn" class="menu-button" type="button">2FA Google</button>
       </nav>
       <div class="top-actions">
         <p id="serverMeta">Đang kết nối...</p>
@@ -31,7 +32,7 @@
       </div>
     </header>
 
-    <main class="workspace">
+    <main id="mailWorkspace" class="workspace">
       <section class="panel input-panel">
         <div class="panel-head">
           <div>
@@ -161,6 +162,38 @@
               </tr>
             </tbody>
           </table>
+        </div>
+      </section>
+    </main>
+
+    <main id="twofaWorkspace" class="workspace hidden">
+      <section class="panel input-panel otp-panel">
+        <div class="panel-head">
+          <div>
+            <h2>
+              <i data-lucide="shield-check"></i>
+              <span>Lấy code 2FA Google</span>
+            </h2>
+            <p id="totpStatus">Sẵn sàng</p>
+          </div>
+        </div>
+
+        <label class="field-label" for="totpInput">Nhập mỗi dòng 1 khóa 2FA Google</label>
+        <textarea id="totpInput" spellcheck="false" placeholder="JBSWY3DPEHPK3PXP"></textarea>
+
+        <div class="run-row">
+          <button id="totpGenerateBtn" class="primary-button" type="button">
+            <i data-lucide="key-round"></i>
+            <span>Lấy mã 2FA</span>
+          </button>
+          <button id="totpClearBtn" class="danger-button" type="button">
+            <i data-lucide="x"></i>
+            <span>Xóa</span>
+          </button>
+        </div>
+
+        <div id="totpGrid" class="totp-grid">
+          <div class="totp-empty">Chưa có mã 2FA</div>
         </div>
       </section>
     </main>

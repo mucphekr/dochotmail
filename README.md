@@ -16,6 +16,24 @@ email|refresh_token|client_id
 
 Cot `password` chi de giu dung format account. Backend khong gui password len Microsoft Graph hoac DongVan.
 
+## Lay code 2FA Google
+
+Tab `2FA Google` ho tro tao ma TOTP 6 so tu secret Google Authenticator.
+
+Nhap moi dong mot secret:
+
+```text
+JBSWY3DPEHPK3PXP
+```
+
+Hoac dan link dang:
+
+```text
+otpauth://totp/Google:user@example.com?secret=JBSWY3DPEHPK3PXP&issuer=Google
+```
+
+Ma 2FA duoc tao truc tiep trong trinh duyet va khong gui secret len backend.
+
 ## Chay local
 
 ```bash

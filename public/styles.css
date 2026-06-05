@@ -321,6 +321,94 @@ button svg {
   transition: width 0.18s ease;
 }
 
+.totp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.totp-card,
+.totp-empty {
+  min-width: 0;
+  border: 1px solid var(--line);
+  background: rgba(9, 42, 69, 0.56);
+}
+
+.totp-card {
+  padding: 10px;
+}
+
+.totp-empty {
+  padding: 18px 10px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.totp-card-head,
+.totp-code-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.totp-card-head {
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.totp-label {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.totp-time {
+  flex: 0 0 auto;
+  color: var(--amber);
+  font-size: 0.72rem;
+  font-weight: 950;
+}
+
+.totp-code-row {
+  justify-content: space-between;
+}
+
+.totp-code {
+  min-width: 0;
+  overflow: hidden;
+  color: #ffffff;
+  font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 1.42rem;
+  font-weight: 950;
+  letter-spacing: 2px;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.totp-progress {
+  height: 5px;
+  margin-top: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #092a45;
+}
+
+.totp-progress > div {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--green);
+  transition: width 0.2s linear;
+}
+
 .result-panel {
   display: flex;
   min-height: 0;
