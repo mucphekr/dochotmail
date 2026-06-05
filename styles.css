@@ -82,8 +82,6 @@ a {
 .main-menu,
 .menu-brand,
 .menu-button,
-.buy-banner,
-.buy-copy,
 .panel-head h2,
 .run-row,
 .stats,
@@ -138,53 +136,6 @@ a {
 .quick-copy,
 .panel-actions {
   display: none !important;
-}
-
-.buy-banner {
-  justify-content: space-between;
-  gap: 16px;
-  width: var(--wrap);
-  min-height: 52px;
-  margin: 12px auto 18px;
-  padding: 0 12px;
-  border-radius: 10px;
-  background: linear-gradient(90deg, var(--green), var(--cyan));
-  color: #031c20;
-}
-
-.buy-copy {
-  gap: 14px;
-  min-width: 0;
-  font-size: 0.82rem;
-  font-weight: 800;
-}
-
-.buy-copy strong {
-  flex: 0 0 auto;
-  font-size: 0.92rem;
-  font-weight: 950;
-}
-
-.buy-copy span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.buy-button {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  min-height: 32px;
-  padding: 0 16px;
-  border-radius: 999px;
-  background: #f4f8ff;
-  color: #071d32;
-  font-size: 0.9rem;
-  font-weight: 950;
-  white-space: nowrap;
 }
 
 .workspace {
@@ -599,8 +550,7 @@ pre {
     --wrap: calc(100vw - 28px);
   }
 
-  .topbar,
-  .buy-banner {
+  .topbar {
     margin-top: 10px;
   }
 
@@ -610,20 +560,6 @@ pre {
 
   .main-menu {
     min-width: max-content;
-  }
-
-  .buy-banner {
-    min-height: 58px;
-  }
-
-  .buy-copy {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .buy-copy span {
-    white-space: normal;
   }
 
   textarea {
@@ -649,11 +585,6 @@ pre {
 }
 
 @media (max-width: 460px) {
-  .buy-button {
-    padding: 0 11px;
-    font-size: 0.82rem;
-  }
-
   .panel-head h2 {
     font-size: 1.08rem;
   }

@@ -42,6 +42,60 @@ const EMAIL_PATTERN = "[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\\.[a-zA
 const UUID_PATTERN = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
 const EMAIL_RE = new RegExp(EMAIL_PATTERN, "g");
 const ACCOUNT_UUID_RE = new RegExp(`${EMAIL_PATTERN}\\|[\\s\\S]*?\\|${UUID_PATTERN}(?=[\\s,;]*${EMAIL_PATTERN}|[\\s,;]*$)`, "g");
+const REQUEST_TIMEOUT_MS = 45000;
+const MAIL_TOP = 30;
+const MAX_ACCOUNTS_PER_REQUEST = 200;
+const DISPLAY_TIME_ZONE = "Asia/Ho_Chi_Minh";
+const MICROSOFT_TOKEN_ENDPOINT = "https://login.microsoftonline.com/common/oauth2/v2.0/token";
+const MICROSOFT_GRAPH_ENDPOINT = "https://graph.microsoft.com/v1.0";
+const MICROSOFT_TOKEN_SCOPES = [
+  "https://graph.microsoft.com/Mail.Read offline_access",
+  "https://graph.microsoft.com/.default"
+];
+const TYPES = new Set([
+  "all",
+  "facebook",
+  "instagram",
+  "twitter",
+  "apple",
+  "tiktok",
+  "amazon",
+  "lazada",
+  "kakaotalk",
+  "google",
+  "openai",
+  "shopee",
+  "telegram",
+  "wechat"
+]);
+const SERVICE_KEYWORDS = {
+  facebook: ["facebook", "meta", "fb"],
+  instagram: ["instagram"],
+  twitter: ["twitter", "x.com"],
+  apple: ["apple"],
+  tiktok: ["tiktok"],
+  amazon: ["amazon"],
+  lazada: ["lazada"],
+  kakaotalk: ["kakaotalk", "kakao"],
+  google: ["google", "gmail"],
+  openai: ["openai", "chatgpt", "tm.openai.com"],
+  shopee: ["shopee"],
+  telegram: ["telegram"],
+  wechat: ["wechat", "weixin"]
+};
+const STATIC_CONFIG = {
+  status: true,
+  provider: "direct",
+  providers: [{ value: "direct", label: "Microsoft Graph" }],
+  endpoints: {
+    direct: MICROSOFT_GRAPH_ENDPOINT
+  },
+  mailTop: MAIL_TOP,
+  hasAccessToken: false,
+  maxAccounts: MAX_ACCOUNTS_PER_REQUEST,
+  types: Array.from(TYPES),
+  staticHosting: true
+};
 
 function refreshIcons() {
   if (window.lucide) {
@@ -182,22 +236,321 @@ function preview(value) {
   return text.length > 92 ? `${text.slice(0, 92)}...` : text;
 }
 
-async function api(path, options = {}) {
-  const headers = {
-    "content-type": "application/json",
-    ...(options.headers || {})
+function normalizeType(value) {
+  const type = String(value || "all").trim().toLowerCase();
+  return TYPES.has(type) ? type : "all";
+}
+
+function isEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
+}
+
+function parseLine(line, index = 0) {
+  const raw = normalizeAccountLine(line);
+  const parts = raw.split("|").map((part) => part.trim());
+  const result = {
+    index: index + 1,
+    line: raw,
+    email: parts[0] || "",
+    password: "",
+    refresh_token: "",
+    client_id: "",
+    valid: false,
+    error: ""
   };
-  const token = accessToken();
-  if (token) headers["x-access-token"] = token;
 
-  const response = await fetch(path, { ...options, headers });
-  const data = await response.json().catch(() => ({ status: false, message: "Máy chủ trả về dữ liệu không hợp lệ." }));
-
-  if (!response.ok) {
-    throw new Error(data.message || `HTTP ${response.status}`);
+  if (!raw) {
+    result.error = "Empty line.";
+    return result;
   }
 
-  return data;
+  if (parts.length >= 4) {
+    result.password = parts[1] || "";
+    result.refresh_token = parts.slice(2, -1).join("|").trim();
+    result.client_id = parts[parts.length - 1] || "";
+  } else if (parts.length === 3) {
+    result.refresh_token = parts[1] || "";
+    result.client_id = parts[2] || "";
+  } else {
+    result.error = "Expected email|password|refresh_token|client_id or email|refresh_token|client_id.";
+    return result;
+  }
+
+  if (!isEmail(result.email)) {
+    result.error = "Invalid email.";
+    return result;
+  }
+
+  if (!result.refresh_token) {
+    result.error = "Missing refresh_token.";
+    return result;
+  }
+
+  if (!result.client_id) {
+    result.error = "Missing client_id.";
+    return result;
+  }
+
+  result.valid = true;
+  return result;
+}
+
+function extractCodeFromText(value) {
+  const text = String(value || "");
+  const dashed = text.match(/\b[A-Z0-9]{3}\s*-\s*[A-Z0-9]{3}\b/i);
+  if (dashed) {
+    return dashed[0].replace(/\s*-\s*/g, "-").toUpperCase();
+  }
+
+  const preferred = text.match(/(?<!\d)\d{4,8}(?!\d)/);
+  return preferred ? preferred[0] : "";
+}
+
+function decodeHtmlEntities(value) {
+  return String(value || "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, code) => String.fromCharCode(parseInt(code, 16)));
+}
+
+function stripHtml(value) {
+  return decodeHtmlEntities(
+    String(value || "")
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<\/p>/gi, "\n")
+      .replace(/<[^>]+>/g, " ")
+  )
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n\s+/g, "\n")
+    .trim();
+}
+
+function formatGraphDate(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: DISPLAY_TIME_ZONE,
+      hour: "2-digit",
+      minute: "2-digit",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour12: false
+    })
+      .formatToParts(date)
+      .map((part) => [part.type, part.value])
+  );
+
+  return `${parts.hour}:${parts.minute} - ${parts.day}/${parts.month}/${parts.year}`;
+}
+
+function messageSearchText(message) {
+  return [
+    message.from,
+    message.from_name,
+    message.subject,
+    message.preview,
+    message.content
+  ]
+    .join(" ")
+    .toLowerCase();
+}
+
+function matchesType(message, type) {
+  if (type === "all") return true;
+  const keywords = SERVICE_KEYWORDS[type] || [type];
+  const text = messageSearchText(message);
+  return keywords.some((keyword) => text.includes(keyword));
+}
+
+function normalizeMailMessage(message) {
+  const bodyText = stripHtml(message.body?.content || "");
+  const subject = String(message.subject || "").trim();
+  const previewText = String(message.bodyPreview || "").trim();
+  const content = [subject, bodyText || previewText].filter(Boolean).join("\n\n");
+  const fromAddress = message.from?.emailAddress?.address || "";
+  const fromName = message.from?.emailAddress?.name || "";
+  const code = extractCodeFromText([subject, previewText, bodyText].join("\n"));
+
+  return {
+    id: message.id || "",
+    conversation_id: message.conversationId || "",
+    from: fromAddress || fromName,
+    from_name: fromName,
+    subject,
+    preview: previewText,
+    content,
+    date: formatGraphDate(message.receivedDateTime),
+    receivedDateTime: message.receivedDateTime || "",
+    code
+  };
+}
+
+async function fetchWithTimeout(url, options = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function exchangeRefreshToken(account) {
+  let lastError = "Could not exchange refresh token.";
+
+  for (const scope of MICROSOFT_TOKEN_SCOPES) {
+    const body = new URLSearchParams({
+      client_id: account.client_id,
+      refresh_token: account.refresh_token,
+      grant_type: "refresh_token",
+      scope
+    });
+
+    const response = await fetchWithTimeout(MICROSOFT_TOKEN_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "content-type": "application/x-www-form-urlencoded"
+      },
+      body
+    });
+    const data = await response.json().catch(() => ({}));
+
+    if (response.ok && data.access_token) {
+      return data.access_token;
+    }
+
+    lastError = data.error_description || data.error || `Token request failed (${response.status}).`;
+  }
+
+  throw new Error(lastError);
+}
+
+async function listRecentMessages(accessToken) {
+  const url = new URL(`${MICROSOFT_GRAPH_ENDPOINT}/me/messages`);
+  url.searchParams.set("$top", String(Math.max(1, Math.min(MAIL_TOP, 100))));
+  url.searchParams.set("$select", "id,conversationId,subject,bodyPreview,receivedDateTime,from,body");
+  url.searchParams.set("$orderby", "receivedDateTime desc");
+
+  const response = await fetchWithTimeout(url, {
+    method: "GET",
+    headers: {
+      authorization: `Bearer ${accessToken}`,
+      prefer: 'outlook.body-content-type="text"'
+    }
+  });
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.error?.message || `Graph messages request failed (${response.status}).`);
+  }
+
+  return Array.isArray(data.value) ? data.value : [];
+}
+
+async function callDirectGraph(account, type) {
+  const accessToken = await exchangeRefreshToken(account);
+  const rawMessages = await listRecentMessages(accessToken);
+  const messages = rawMessages.map(normalizeMailMessage);
+  const found = messages.find((message) => message.code && matchesType(message, type));
+  const first = found || messages[0] || {};
+
+  if (!found) {
+    return {
+      status: false,
+      httpStatus: 200,
+      email: account.email,
+      type,
+      code: "",
+      from: first.from || "",
+      subject: first.subject || "",
+      content: `No code found in latest ${messages.length} messages.`,
+      date: first.date || "",
+      conversation_id: first.conversation_id || "",
+      messages: messages.slice(0, 10),
+      provider: "microsoft_graph",
+      message: "No code found."
+    };
+  }
+
+  return {
+    status: true,
+    httpStatus: 200,
+    email: account.email,
+    type,
+    code: found.code,
+    from: found.from,
+    subject: found.subject,
+    content: found.content || found.preview,
+    date: found.date,
+    conversation_id: found.conversation_id,
+    messages: messages.slice(0, 10),
+    provider: "microsoft_graph",
+    message: "OK"
+  };
+}
+
+async function api(path, options = {}) {
+  if (path === "/api/config") {
+    return STATIC_CONFIG;
+  }
+
+  if (path === "/api/code") {
+    const body = JSON.parse(options.body || "{}");
+    const type = normalizeType(body.type);
+    const account = parseLine(body.line || "", Number(body.index || 1) - 1);
+
+    if (!account.valid) {
+      return {
+        status: false,
+        email: account.email,
+        type,
+        provider: "microsoft_graph",
+        code: "",
+        from: "",
+        subject: "",
+        content: account.error,
+        date: "",
+        message: account.error
+      };
+    }
+
+    try {
+      return await callDirectGraph(account, type);
+    } catch (error) {
+      const message = error.name === "AbortError"
+        ? "Graph code request timed out."
+        : `Graph code request failed: ${error.message}`;
+      return {
+        status: false,
+        email: account.email,
+        type,
+        provider: "microsoft_graph",
+        code: "",
+        from: "",
+        subject: "",
+        content: message,
+        date: "",
+        message
+      };
+    }
+  }
+
+  throw new Error(`Unsupported static API route: ${path}`);
 }
 
 function renderEmpty() {
