@@ -3,21 +3,23 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Đọc mã Hotmail Graph</title>
+    <title>Mail Tool</title>
     <link rel="stylesheet" href="/styles.css">
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
     <script src="/app.js" defer></script>
   </head>
   <body>
     <header class="topbar">
-      <div class="brand">
-        <span class="brand-mark">HG</span>
-        <div>
-          <h1>Đọc mã Hotmail Graph</h1>
-          <p id="serverMeta">Đang kết nối...</p>
-        </div>
-      </div>
+      <nav class="main-menu" aria-label="Menu chính">
+        <a class="menu-brand" href="/" aria-label="Mail Tool">
+          <i data-lucide="mailbox"></i>
+          <span>Mail Tool</span>
+        </a>
+        <button class="menu-button active" type="button">Đọc mail</button>
+        <button class="menu-button" type="button">Check live mail</button>
+      </nav>
       <div class="top-actions">
+        <p id="serverMeta">Đang kết nối...</p>
         <span id="summaryBadge" class="summary-badge">0 / 0</span>
         <button id="copyAllBtn" class="icon-button" type="button" title="Sao chép kết quả">
           <i data-lucide="copy"></i>
@@ -30,11 +32,22 @@
       </div>
     </header>
 
+    <section class="buy-banner" aria-label="Mua mail">
+      <a class="buy-copy" href="https://minhmail.net" target="_blank" rel="noreferrer">
+        <strong>🔥 Mua mail tại đây</strong>
+        <span>click để chuyển sang minhmail.net</span>
+      </a>
+      <a class="buy-button" href="https://minhmail.net" target="_blank" rel="noreferrer">Mua ngay</a>
+    </section>
+
     <main class="workspace">
       <section class="panel input-panel">
         <div class="panel-head">
           <div>
-            <h2>Dữ liệu đầu vào</h2>
+            <h2>
+              <i data-lucide="mail"></i>
+              <span>Đọc Hotmail bằng Graph API</span>
+            </h2>
             <p id="lineCount">0 tài khoản</p>
           </div>
           <div class="panel-actions">
@@ -49,7 +62,7 @@
           </div>
         </div>
 
-        <label class="field-label" for="accountInput">Tài khoản</label>
+        <label class="field-label" for="accountInput">Nhập mỗi dòng 1 account theo định dạng: email|password|refresh_token|client_id</label>
         <textarea id="accountInput" spellcheck="false" placeholder="email|password|refresh_token|client_id"></textarea>
         <div id="accountPreview" class="account-preview">
           <div class="account-preview-empty">Chưa có tài khoản</div>
@@ -144,11 +157,11 @@
               <tr>
                 <th>#</th>
                 <th>Email</th>
-                <th>Người gửi</th>
-                <th>Thời gian</th>
-                <th>Nội dung</th>
-                <th>Mã</th>
-                <th>Trạng thái</th>
+                <th>From</th>
+                <th>Time</th>
+                <th>Content</th>
+                <th>Code</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody id="resultBody">
