@@ -420,10 +420,10 @@ function stop() {
 }
 
 async function copyText(text) {
-  if (!text) return;
+  if (!text) return false;
   if (navigator.clipboard?.writeText) {
     await navigator.clipboard.writeText(text);
-    return;
+    return true;
   }
 
   const textarea = document.createElement("textarea");
@@ -434,17 +434,32 @@ async function copyText(text) {
   textarea.select();
   document.execCommand("copy");
   textarea.remove();
+  return true;
 }
 
-async function copyAll() {
+function flashCopyButton(button) {
+  if (!button) return;
+
+  clearTimeout(button.copyFlashTimer);
+  button.classList.remove("copy-flash");
+  button.offsetWidth;
+  button.classList.add("copy-flash");
+  button.copyFlashTimer = setTimeout(() => {
+    button.classList.remove("copy-flash");
+  }, 760);
+}
+
+async function copyAll(event) {
   const text = normalizeCopyRows("pair");
-  await copyText(text);
+  const copied = await copyText(text);
+  if (copied) flashCopyButton(event?.currentTarget);
   setStatus(text ? "Đã sao chép Email|OTP" : "Chưa có dữ liệu để sao chép", text ? "ok" : "error");
 }
 
-async function copyQuick(kind) {
+async function copyQuick(kind, button) {
   const text = normalizeCopyRows(kind);
-  await copyText(text);
+  const copied = await copyText(text);
+  if (copied) flashCopyButton(button);
 
   const labels = {
     email: "email",
@@ -533,20 +548,22 @@ function bindEvents() {
   els.startBtn.addEventListener("click", start);
   els.stopBtn.addEventListener("click", stop);
   els.copyAllBtn.addEventListener("click", copyAll);
-  els.copyEmailBtn.addEventListener("click", () => copyQuick("email"));
-  els.copyCodeBtn.addEventListener("click", () => copyQuick("code"));
-  els.copyPairBtn.addEventListener("click", () => copyQuick("pair"));
+  els.copyEmailBtn.addEventListener("click", (event) => copyQuick("email", event.currentTarget));
+  els.copyCodeBtn.addEventListener("click", (event) => copyQuick("code", event.currentTarget));
+  els.copyPairBtn.addEventListener("click", (event) => copyQuick("pair", event.currentTarget));
   els.exportBtn.addEventListener("click", exportCsv);
   els.resultBody.addEventListener("click", async (event) => {
     const copy = event.target.closest("[data-copy-code]");
     const copyEmail = event.target.closest("[data-copy-email]");
     const detail = event.target.closest("[data-content-index]");
     if (copy) {
-      await copyText(copy.dataset.copyCode);
+      const copied = await copyText(copy.dataset.copyCode);
+      if (copied) flashCopyButton(copy);
       setStatus("Đã sao chép mã", "ok");
     }
     if (copyEmail) {
-      await copyText(copyEmail.dataset.copyEmail);
+      const copied = await copyText(copyEmail.dataset.copyEmail);
+      if (copied) flashCopyButton(copyEmail);
       setStatus("Đã sao chép email", "ok");
     }
     if (detail) {

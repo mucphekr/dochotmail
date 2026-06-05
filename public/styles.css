@@ -432,6 +432,39 @@ td:nth-child(7) {
   font-weight: 900;
 }
 
+.copy-flash {
+  animation: copy-fade 0.76s ease both;
+}
+
+.tiny-copy.copy-flash {
+  border-radius: 4px;
+  background: rgba(120, 255, 199, 0.16);
+  color: #c8fff0;
+}
+
+.secondary-button.copy-flash,
+.icon-button.copy-flash {
+  border-color: rgba(120, 255, 199, 0.78);
+  background: rgba(0, 207, 138, 0.22);
+}
+
+@keyframes copy-fade {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  28% {
+    opacity: 0.38;
+    transform: scale(0.96);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .otp-copy {
   justify-content: flex-start;
 }
