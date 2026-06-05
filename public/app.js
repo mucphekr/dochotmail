@@ -24,6 +24,7 @@ const els = {
   accountPreview: $("#accountPreview"),
   lineCount: $("#lineCount"),
   clearBtn: $("#clearBtn"),
+  clearMailBtn: $("#clearMailBtn"),
   formatBtn: $("#formatBtn"),
   accessBox: $("#accessBox"),
   accessToken: $("#accessToken"),
@@ -442,6 +443,21 @@ function renderEmpty() {
   els.resultBody.innerHTML = '<tr><td class="empty-state" colspan="7">Chưa có kết quả</td></tr>';
 }
 
+function clearMailData() {
+  state.stopped = true;
+  state.running = false;
+  state.rows = [];
+  state.results = [];
+  state.completed = 0;
+  els.accountInput.value = "";
+  els.startBtn.disabled = false;
+  els.stopBtn.disabled = true;
+  updateLineCount();
+  updateSummary();
+  renderEmpty();
+  setStatus("Đã xóa tất cả hotmail", "ok");
+}
+
 function createRows(inputLines) {
   state.rows = inputLines;
   state.results = inputLines.map((line, index) => ({
@@ -780,11 +796,8 @@ function bindEvents() {
   els.twofaViewBtn.addEventListener("click", () => switchView("twofa"));
   els.accountInput.addEventListener("input", updateLineCount);
   els.formatBtn.addEventListener("click", formatAccounts);
-  els.clearBtn.addEventListener("click", () => {
-    els.accountInput.value = "";
-    updateLineCount();
-    renderEmpty();
-  });
+  els.clearBtn.addEventListener("click", clearMailData);
+  els.clearMailBtn.addEventListener("click", clearMailData);
   els.startBtn.addEventListener("click", start);
   els.stopBtn.addEventListener("click", stop);
   els.copyAllBtn.addEventListener("click", copyAll);
