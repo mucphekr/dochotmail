@@ -80,7 +80,6 @@ a {
 }
 
 .main-menu,
-.menu-brand,
 .menu-button,
 .panel-head h2,
 .run-row,
@@ -93,22 +92,6 @@ a {
 .main-menu {
   min-width: 0;
   gap: 7px;
-}
-
-.menu-brand {
-  gap: 6px;
-  min-height: 30px;
-  padding: 0 3px;
-  color: #ffffff;
-  font-size: 0.88rem;
-  font-weight: 900;
-  white-space: nowrap;
-}
-
-.menu-brand svg {
-  width: 15px;
-  height: 15px;
-  color: #ffb86b;
 }
 
 .menu-button {
