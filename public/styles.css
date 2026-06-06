@@ -419,6 +419,71 @@ button svg {
   transition: width 0.2s linear;
 }
 
+.split-copy-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.split-copy-row .secondary-button {
+  min-height: 28px;
+}
+
+.split-table-wrap {
+  overflow: auto;
+  margin-top: 12px;
+  border: 1px solid var(--line);
+  background: transparent;
+}
+
+.split-table {
+  min-width: 980px;
+}
+
+.split-table th:nth-child(1),
+.split-table td:nth-child(1) {
+  width: 5%;
+}
+
+.split-table th:nth-child(2),
+.split-table td:nth-child(2) {
+  width: 20%;
+}
+
+.split-table th:nth-child(3),
+.split-table td:nth-child(3) {
+  width: 17%;
+}
+
+.split-table th:nth-child(4),
+.split-table td:nth-child(4) {
+  width: 38%;
+}
+
+.split-table th:nth-child(5),
+.split-table td:nth-child(5) {
+  width: 20%;
+}
+
+.split-cell {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}
+
+.split-cell span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.split-table .empty-state {
+  color: var(--muted);
+}
+
 .result-panel {
   display: flex;
   min-height: 0;

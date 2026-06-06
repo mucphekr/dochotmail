@@ -34,6 +34,16 @@ otpauth://totp/Google:user@example.com?secret=JBSWY3DPEHPK3PXP&issuer=Google
 
 Ma 2FA duoc tao truc tiep trong trinh duyet va khong gui secret len backend.
 
+## Tach dinh dang mail
+
+Tab `Tach dinh dang` ho tro tach cac dong Hotmail/Gmail ngan cach bang dau `|`, vi du:
+
+```text
+email@gmail.com|password|refresh_token|client_id
+```
+
+Sau khi bam `Tach dinh dang`, co the copy rieng tung cot `email`, `password`, `refresh_token`, `client_id`, copy tung o trong bang, hoac copy lai tat ca theo format goc.
+
 ## Chay local
 
 ```bash

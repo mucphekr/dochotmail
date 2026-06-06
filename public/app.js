@@ -6,7 +6,8 @@ const state = {
   stopped: false,
   completed: 0,
   totpItems: [],
-  totpTimer: null
+  totpTimer: null,
+  splitRows: []
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -14,8 +15,10 @@ const $ = (selector) => document.querySelector(selector);
 const els = {
   mailViewBtn: $("#mailViewBtn"),
   twofaViewBtn: $("#twofaViewBtn"),
+  splitViewBtn: $("#splitViewBtn"),
   mailWorkspace: $("#mailWorkspace"),
   twofaWorkspace: $("#twofaWorkspace"),
+  splitWorkspace: $("#splitWorkspace"),
   serverMeta: $("#serverMeta"),
   summaryBadge: $("#summaryBadge"),
   copyAllBtn: $("#copyAllBtn"),
@@ -47,7 +50,17 @@ const els = {
   totpGenerateBtn: $("#totpGenerateBtn"),
   totpClearBtn: $("#totpClearBtn"),
   totpGrid: $("#totpGrid"),
-  totpStatus: $("#totpStatus")
+  totpStatus: $("#totpStatus"),
+  splitInput: $("#splitInput"),
+  splitParseBtn: $("#splitParseBtn"),
+  splitClearBtn: $("#splitClearBtn"),
+  splitStatus: $("#splitStatus"),
+  splitResultBody: $("#splitResultBody"),
+  copySplitEmailBtn: $("#copySplitEmailBtn"),
+  copySplitPasswordBtn: $("#copySplitPasswordBtn"),
+  copySplitRefreshBtn: $("#copySplitRefreshBtn"),
+  copySplitClientBtn: $("#copySplitClientBtn"),
+  copySplitAllBtn: $("#copySplitAllBtn")
 };
 
 const EMAIL_PATTERN = "[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\\.[a-zA-Z0-9-]+)+";
@@ -135,12 +148,21 @@ function setTotpStatus(message, tone = "muted") {
   els.totpStatus.dataset.tone = tone;
 }
 
+function setSplitStatus(message, tone = "muted") {
+  els.splitStatus.textContent = message;
+  els.splitStatus.dataset.tone = tone;
+}
+
 function switchView(view) {
+  const showMail = view === "mail";
   const showTwofa = view === "twofa";
-  els.mailWorkspace.classList.toggle("hidden", showTwofa);
+  const showSplit = view === "split";
+  els.mailWorkspace.classList.toggle("hidden", !showMail);
   els.twofaWorkspace.classList.toggle("hidden", !showTwofa);
-  els.mailViewBtn.classList.toggle("active", !showTwofa);
+  els.splitWorkspace.classList.toggle("hidden", !showSplit);
+  els.mailViewBtn.classList.toggle("active", showMail);
   els.twofaViewBtn.classList.toggle("active", showTwofa);
+  els.splitViewBtn.classList.toggle("active", showSplit);
 }
 
 function updateLineCount() {
@@ -207,6 +229,117 @@ function preview(value) {
   const text = String(value || "").replace(/\s+/g, " ").trim();
   if (!text) return "";
   return text.length > 92 ? `${text.slice(0, 92)}...` : text;
+}
+
+function parseSplitLine(line, index) {
+  const raw = normalizeAccountLine(line);
+  const parts = raw.split("|").map((part) => part.trim());
+  const row = {
+    index,
+    raw,
+    email: parts[0] || "",
+    password: "",
+    refreshToken: "",
+    clientId: "",
+    parts: parts.length
+  };
+
+  if (parts.length >= 4) {
+    row.password = parts[1] || "";
+    row.refreshToken = parts.slice(2, -1).join("|").trim();
+    row.clientId = parts[parts.length - 1] || "";
+  } else if (parts.length === 3) {
+    row.refreshToken = parts[1] || "";
+    row.clientId = parts[2] || "";
+  } else if (parts.length === 2) {
+    row.password = parts[1] || "";
+  }
+
+  return row;
+}
+
+function parseSplitRows(value) {
+  return splitAccounts(value)
+    .map((line, index) => parseSplitLine(line, index))
+    .filter((row) => row.raw);
+}
+
+function renderSplitEmpty(message = "Chưa có dữ liệu") {
+  els.splitResultBody.innerHTML = `<tr><td class="empty-state" colspan="5">${escapeHtml(message)}</td></tr>`;
+}
+
+function splitValueCell(row, field) {
+  const value = row[field] || "";
+  return `
+    <div class="split-cell">
+      <span title="${escapeHtml(value)}">${escapeHtml(value || "-")}</span>
+      <button class="tiny-copy" data-copy-split-field="${field}" data-copy-split-index="${row.index}" type="button" title="Copy trường này">Copy</button>
+    </div>
+  `;
+}
+
+function renderSplitRows() {
+  if (!state.splitRows.length) {
+    renderSplitEmpty();
+    return;
+  }
+
+  els.splitResultBody.innerHTML = state.splitRows
+    .map((row) => `
+      <tr>
+        <td>${row.index + 1}</td>
+        <td>${splitValueCell(row, "email")}</td>
+        <td>${splitValueCell(row, "password")}</td>
+        <td>${splitValueCell(row, "refreshToken")}</td>
+        <td>${splitValueCell(row, "clientId")}</td>
+      </tr>
+    `)
+    .join("");
+}
+
+function parseSplitInput() {
+  state.splitRows = parseSplitRows(els.splitInput.value);
+  renderSplitRows();
+  setSplitStatus(
+    state.splitRows.length ? `Đã tách ${state.splitRows.length.toLocaleString()} dòng` : "Chưa có dữ liệu hợp lệ",
+    state.splitRows.length ? "ok" : "error"
+  );
+}
+
+function clearSplitData() {
+  state.splitRows = [];
+  els.splitInput.value = "";
+  renderSplitEmpty();
+  setSplitStatus("Sẵn sàng");
+}
+
+function splitColumnText(field) {
+  return state.splitRows
+    .map((row) => row[field])
+    .filter(Boolean)
+    .join("\n");
+}
+
+async function copySplitColumn(field, button) {
+  const labels = {
+    email: "email",
+    password: "password",
+    refreshToken: "refresh_token",
+    clientId: "client_id"
+  };
+  const text = splitColumnText(field);
+  const copied = await copyText(text);
+  if (copied) flashCopyButton(button);
+  setSplitStatus(text ? `Đã sao chép ${labels[field]}` : "Chưa có dữ liệu để sao chép", text ? "ok" : "error");
+}
+
+async function copySplitAll(button) {
+  const text = state.splitRows
+    .map((row) => row.raw)
+    .join("\n");
+  const copied = await copyText(text);
+  if (copied) flashCopyButton(button);
+  setSplitStatus(text ? "Đã sao chép tất cả" : "Chưa có dữ liệu để sao chép", text ? "ok" : "error");
 }
 
 function cleanTotpSecret(value) {
@@ -794,6 +927,7 @@ async function loadConfig() {
 function bindEvents() {
   els.mailViewBtn.addEventListener("click", () => switchView("mail"));
   els.twofaViewBtn.addEventListener("click", () => switchView("twofa"));
+  els.splitViewBtn.addEventListener("click", () => switchView("split"));
   els.accountInput.addEventListener("input", updateLineCount);
   els.formatBtn.addEventListener("click", formatAccounts);
   els.clearBtn.addEventListener("click", clearMailData);
@@ -807,6 +941,13 @@ function bindEvents() {
   els.exportBtn.addEventListener("click", exportCsv);
   els.totpGenerateBtn.addEventListener("click", startTotp);
   els.totpClearBtn.addEventListener("click", clearTotp);
+  els.splitParseBtn.addEventListener("click", parseSplitInput);
+  els.splitClearBtn.addEventListener("click", clearSplitData);
+  els.copySplitEmailBtn.addEventListener("click", (event) => copySplitColumn("email", event.currentTarget));
+  els.copySplitPasswordBtn.addEventListener("click", (event) => copySplitColumn("password", event.currentTarget));
+  els.copySplitRefreshBtn.addEventListener("click", (event) => copySplitColumn("refreshToken", event.currentTarget));
+  els.copySplitClientBtn.addEventListener("click", (event) => copySplitColumn("clientId", event.currentTarget));
+  els.copySplitAllBtn.addEventListener("click", (event) => copySplitAll(event.currentTarget));
   els.totpInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
       startTotp();
@@ -822,6 +963,17 @@ function bindEvents() {
     const copied = await copyText(item.code);
     if (copied) flashCopyButton(copyTotp);
     setTotpStatus("Đã sao chép mã 2FA", "ok");
+  });
+  els.splitResultBody.addEventListener("click", async (event) => {
+    const copySplit = event.target.closest("[data-copy-split-field]");
+    if (!copySplit) return;
+
+    const row = state.splitRows[Number(copySplit.dataset.copySplitIndex)];
+    const field = copySplit.dataset.copySplitField;
+    const value = row?.[field] || "";
+    const copied = await copyText(value);
+    if (copied) flashCopyButton(copySplit);
+    setSplitStatus(value ? "Đã sao chép trường đã chọn" : "Trường này đang trống", value ? "ok" : "error");
   });
   els.resultBody.addEventListener("click", async (event) => {
     const copy = event.target.closest("[data-copy-code]");
