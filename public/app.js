@@ -16,9 +16,11 @@ const els = {
   mailViewBtn: $("#mailViewBtn"),
   twofaViewBtn: $("#twofaViewBtn"),
   splitViewBtn: $("#splitViewBtn"),
+  mergeViewBtn: $("#mergeViewBtn"),
   mailWorkspace: $("#mailWorkspace"),
   twofaWorkspace: $("#twofaWorkspace"),
   splitWorkspace: $("#splitWorkspace"),
+  mergeWorkspace: $("#mergeWorkspace"),
   serverMeta: $("#serverMeta"),
   summaryBadge: $("#summaryBadge"),
   copyAllBtn: $("#copyAllBtn"),
@@ -52,7 +54,6 @@ const els = {
   totpGrid: $("#totpGrid"),
   totpStatus: $("#totpStatus"),
   splitInput: $("#splitInput"),
-  splitMergeBtn: $("#splitMergeBtn"),
   splitParseBtn: $("#splitParseBtn"),
   splitClearBtn: $("#splitClearBtn"),
   splitStatus: $("#splitStatus"),
@@ -61,7 +62,13 @@ const els = {
   copySplitPasswordBtn: $("#copySplitPasswordBtn"),
   copySplitRefreshBtn: $("#copySplitRefreshBtn"),
   copySplitClientBtn: $("#copySplitClientBtn"),
-  copySplitAllBtn: $("#copySplitAllBtn")
+  copySplitAllBtn: $("#copySplitAllBtn"),
+  mergeInput: $("#mergeInput"),
+  mergeOutput: $("#mergeOutput"),
+  mergeFormatBtn: $("#mergeFormatBtn"),
+  mergeCopyBtn: $("#mergeCopyBtn"),
+  mergeClearBtn: $("#mergeClearBtn"),
+  mergeStatus: $("#mergeStatus")
 };
 
 const EMAIL_PATTERN = "[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\\.[a-zA-Z0-9-]+)+";
@@ -155,16 +162,24 @@ function setSplitStatus(message, tone = "muted") {
   els.splitStatus.dataset.tone = tone;
 }
 
+function setMergeStatus(message, tone = "muted") {
+  els.mergeStatus.textContent = message;
+  els.mergeStatus.dataset.tone = tone;
+}
+
 function switchView(view) {
   const showMail = view === "mail";
   const showTwofa = view === "twofa";
   const showSplit = view === "split";
+  const showMerge = view === "merge";
   els.mailWorkspace.classList.toggle("hidden", !showMail);
   els.twofaWorkspace.classList.toggle("hidden", !showTwofa);
   els.splitWorkspace.classList.toggle("hidden", !showSplit);
+  els.mergeWorkspace.classList.toggle("hidden", !showMerge);
   els.mailViewBtn.classList.toggle("active", showMail);
   els.twofaViewBtn.classList.toggle("active", showTwofa);
   els.splitViewBtn.classList.toggle("active", showSplit);
+  els.mergeViewBtn.classList.toggle("active", showMerge);
 }
 
 function updateLineCount() {
@@ -271,7 +286,7 @@ function parseSplitRows(value) {
     .filter((row) => row.raw);
 }
 
-function mergeSplitLine(line) {
+function mergeFormatLine(line) {
   const raw = String(line || "").trim();
   if (!raw) return "";
   if (raw.includes("|")) return normalizeAccountLine(raw);
@@ -283,10 +298,10 @@ function mergeSplitLine(line) {
     .join("|");
 }
 
-function mergeSplitRows(value) {
+function mergeFormatRows(value) {
   return String(value || "")
     .split(/\r?\n/)
-    .map(mergeSplitLine)
+    .map(mergeFormatLine)
     .filter(Boolean);
 }
 
@@ -332,19 +347,33 @@ function parseSplitInput() {
   );
 }
 
-function mergeSplitInput() {
-  const mergedLines = mergeSplitRows(els.splitInput.value);
+function mergeFormatInput() {
+  const mergedLines = mergeFormatRows(els.mergeInput.value);
   if (!mergedLines.length) {
-    state.splitRows = [];
-    renderSplitEmpty();
-    setSplitStatus("Chưa có dữ liệu để gộp", "error");
+    els.mergeOutput.value = "";
+    setMergeStatus("Chưa có dữ liệu để gộp", "error");
     return;
   }
 
-  els.splitInput.value = mergedLines.join("\n");
-  state.splitRows = parseSplitRows(els.splitInput.value);
-  renderSplitRows();
-  setSplitStatus(`Đã gộp ${mergedLines.length.toLocaleString()} dòng`, "ok");
+  els.mergeOutput.value = mergedLines.join("\n");
+  setMergeStatus(`Đã gộp ${mergedLines.length.toLocaleString()} dòng`, "ok");
+}
+
+function clearMergeData() {
+  els.mergeInput.value = "";
+  els.mergeOutput.value = "";
+  setMergeStatus("Sẵn sàng");
+}
+
+async function copyMergeOutput(button) {
+  if (!els.mergeOutput.value.trim()) {
+    mergeFormatInput();
+  }
+
+  const text = els.mergeOutput.value.trim();
+  const copied = await copyText(text);
+  if (copied) flashCopyButton(button);
+  setMergeStatus(text ? "Đã sao chép kết quả" : "Chưa có dữ liệu để sao chép", text ? "ok" : "error");
 }
 
 function clearSplitData() {
@@ -969,6 +998,7 @@ function bindEvents() {
   els.mailViewBtn.addEventListener("click", () => switchView("mail"));
   els.twofaViewBtn.addEventListener("click", () => switchView("twofa"));
   els.splitViewBtn.addEventListener("click", () => switchView("split"));
+  els.mergeViewBtn.addEventListener("click", () => switchView("merge"));
   els.accountInput.addEventListener("input", updateLineCount);
   els.formatBtn.addEventListener("click", formatAccounts);
   els.clearBtn.addEventListener("click", clearMailData);
@@ -982,7 +1012,6 @@ function bindEvents() {
   els.exportBtn.addEventListener("click", exportCsv);
   els.totpGenerateBtn.addEventListener("click", startTotp);
   els.totpClearBtn.addEventListener("click", clearTotp);
-  els.splitMergeBtn.addEventListener("click", mergeSplitInput);
   els.splitParseBtn.addEventListener("click", parseSplitInput);
   els.splitClearBtn.addEventListener("click", clearSplitData);
   els.copySplitEmailBtn.addEventListener("click", (event) => copySplitColumn("email", event.currentTarget));
@@ -990,6 +1019,9 @@ function bindEvents() {
   els.copySplitRefreshBtn.addEventListener("click", (event) => copySplitColumn("refreshToken", event.currentTarget));
   els.copySplitClientBtn.addEventListener("click", (event) => copySplitColumn("clientId", event.currentTarget));
   els.copySplitAllBtn.addEventListener("click", (event) => copySplitAll(event.currentTarget));
+  els.mergeFormatBtn.addEventListener("click", mergeFormatInput);
+  els.mergeCopyBtn.addEventListener("click", (event) => copyMergeOutput(event.currentTarget));
+  els.mergeClearBtn.addEventListener("click", clearMergeData);
   els.totpInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
       startTotp();

@@ -484,6 +484,15 @@ button svg {
   color: var(--muted);
 }
 
+.merge-output-label {
+  margin-top: 12px;
+}
+
+.merge-output {
+  height: clamp(120px, 17vh, 170px);
+  min-height: 110px;
+}
+
 .result-panel {
   display: flex;
   min-height: 0;
