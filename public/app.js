@@ -52,6 +52,7 @@ const els = {
   totpGrid: $("#totpGrid"),
   totpStatus: $("#totpStatus"),
   splitInput: $("#splitInput"),
+  splitMergeBtn: $("#splitMergeBtn"),
   splitParseBtn: $("#splitParseBtn"),
   splitClearBtn: $("#splitClearBtn"),
   splitStatus: $("#splitStatus"),
@@ -67,6 +68,7 @@ const EMAIL_PATTERN = "[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\\.[a-zA
 const UUID_PATTERN = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
 const EMAIL_RE = new RegExp(EMAIL_PATTERN, "g");
 const ACCOUNT_UUID_RE = new RegExp(`${EMAIL_PATTERN}\\|[\\s\\S]*?\\|${UUID_PATTERN}(?=[\\s,;]*${EMAIL_PATTERN}|[\\s,;]*$)`, "g");
+const UUID_EXACT_RE = new RegExp(`^${UUID_PATTERN}$`);
 const TOTP_PERIOD_SECONDS = 30;
 const TOTP_DIGITS = 6;
 
@@ -249,8 +251,13 @@ function parseSplitLine(line, index) {
     row.refreshToken = parts.slice(2, -1).join("|").trim();
     row.clientId = parts[parts.length - 1] || "";
   } else if (parts.length === 3) {
-    row.refreshToken = parts[1] || "";
-    row.clientId = parts[2] || "";
+    if (UUID_EXACT_RE.test(parts[2] || "")) {
+      row.refreshToken = parts[1] || "";
+      row.clientId = parts[2] || "";
+    } else {
+      row.password = parts[1] || "";
+      row.refreshToken = parts[2] || "";
+    }
   } else if (parts.length === 2) {
     row.password = parts[1] || "";
   }
@@ -262,6 +269,25 @@ function parseSplitRows(value) {
   return splitAccounts(value)
     .map((line, index) => parseSplitLine(line, index))
     .filter((row) => row.raw);
+}
+
+function mergeSplitLine(line) {
+  const raw = String(line || "").trim();
+  if (!raw) return "";
+  if (raw.includes("|")) return normalizeAccountLine(raw);
+
+  return raw
+    .split(/\s+/)
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join("|");
+}
+
+function mergeSplitRows(value) {
+  return String(value || "")
+    .split(/\r?\n/)
+    .map(mergeSplitLine)
+    .filter(Boolean);
 }
 
 function renderSplitEmpty(message = "Chưa có dữ liệu") {
@@ -304,6 +330,21 @@ function parseSplitInput() {
     state.splitRows.length ? `Đã tách ${state.splitRows.length.toLocaleString()} dòng` : "Chưa có dữ liệu hợp lệ",
     state.splitRows.length ? "ok" : "error"
   );
+}
+
+function mergeSplitInput() {
+  const mergedLines = mergeSplitRows(els.splitInput.value);
+  if (!mergedLines.length) {
+    state.splitRows = [];
+    renderSplitEmpty();
+    setSplitStatus("Chưa có dữ liệu để gộp", "error");
+    return;
+  }
+
+  els.splitInput.value = mergedLines.join("\n");
+  state.splitRows = parseSplitRows(els.splitInput.value);
+  renderSplitRows();
+  setSplitStatus(`Đã gộp ${mergedLines.length.toLocaleString()} dòng`, "ok");
 }
 
 function clearSplitData() {
@@ -941,6 +982,7 @@ function bindEvents() {
   els.exportBtn.addEventListener("click", exportCsv);
   els.totpGenerateBtn.addEventListener("click", startTotp);
   els.totpClearBtn.addEventListener("click", clearTotp);
+  els.splitMergeBtn.addEventListener("click", mergeSplitInput);
   els.splitParseBtn.addEventListener("click", parseSplitInput);
   els.splitClearBtn.addEventListener("click", clearSplitData);
   els.copySplitEmailBtn.addEventListener("click", (event) => copySplitColumn("email", event.currentTarget));

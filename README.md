@@ -44,6 +44,18 @@ email@gmail.com|password|refresh_token|client_id
 
 Sau khi bam `Tach dinh dang`, co the copy rieng tung cot `email`, `password`, `refresh_token`, `client_id`, copy tung o trong bang, hoac copy lai tat ca theo format goc.
 
+Nut `Gop dinh dang` chuyen cac dong dang tab/khoang trang thanh dau `|`:
+
+```text
+kimuralab4@gmail.com 0123asdf@#L m2c5ycrcstcefnqmd2sd3t32ifkgobmc
+```
+
+Thanh:
+
+```text
+kimuralab4@gmail.com|0123asdf@#L|m2c5ycrcstcefnqmd2sd3t32ifkgobmc
+```
+
 ## Chay local
 
 ```bash
