@@ -647,6 +647,21 @@ app.use((req, res) => {
   res.status(404).json({ status: false, message: "Not found." });
 });
 
-app.listen(PORT, () => {
-  console.log(`Hotmail Graph Code app listening on port ${PORT}`);
-});
+function startServer(port = PORT, onReady) {
+  const server = app.listen(port, () => {
+    const address = server.address();
+    const actualPort = typeof address === "object" && address ? address.port : port;
+    console.log(`Hotmail Graph Code app listening on port ${actualPort}`);
+    if (onReady) onReady(server, actualPort);
+  });
+  return server;
+}
+
+if (require.main === module) {
+  startServer();
+}
+
+module.exports = {
+  app,
+  startServer
+};

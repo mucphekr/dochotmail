@@ -71,6 +71,25 @@ Mo:
 http://localhost:3000
 ```
 
+## Tao file EXE Windows
+
+Ban desktop dung Electron, chay noi bo tren may tinh va khong can mo domain web.
+
+Build file `.exe` portable:
+
+```bash
+npm install
+npm run dist:win
+```
+
+File tao ra:
+
+```text
+dist/DocHotmail-1.0.0-x64.exe
+```
+
+Copy file nay sang may Windows khac la co the mo truc tiep. Khi doc mail qua Graph/DongVan, may van can co internet.
+
 ## Bien moi truong
 
 | Bien | Mac dinh | Ghi chu |
