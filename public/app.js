@@ -291,10 +291,23 @@ function mergeFormatLine(line) {
   if (!raw) return "";
   if (raw.includes("|")) return normalizeAccountLine(raw);
 
-  return raw
-    .split(/\s+/)
-    .map((part) => part.trim())
+  if (raw.includes("\t")) {
+    const tabFields = raw
+      .split(/\t+/)
+      .map((part) => part.trim())
+      .filter(Boolean);
+
+    if (tabFields.length >= 3) {
+      return tabFields.join("|");
+    }
+  }
+
+  const fields = raw.match(/^(\S+)(?:\s+(\S+))?(?:\s+([\s\S]+))?$/);
+  if (!fields) return raw;
+
+  return [fields[1], fields[2], fields[3]]
     .filter(Boolean)
+    .map((part) => part.trim())
     .join("|");
 }
 
@@ -459,7 +472,11 @@ function parseTotpInput(value) {
   const seen = new Set();
   return String(value || "")
     .split(/\r?\n|,|;/)
-    .map(extractTotpSecret)
+    .map((source) => {
+      const raw = source.trim();
+      const item = extractTotpSecret(raw);
+      return item ? { ...item, source: raw || item.secret } : null;
+    })
     .filter(Boolean)
     .filter((item) => {
       if (seen.has(item.secret)) return false;
@@ -542,8 +559,16 @@ function renderTotpCards() {
       return `
         <article class="totp-card" data-totp-index="${index}">
           <div class="totp-card-head">
-            <span class="totp-label" title="${escapeHtml(item.label)}">${escapeHtml(shortLabel)}</span>
-            <span class="totp-time" data-totp-time="${index}">30s</span>
+            <div class="totp-title-row">
+              <span class="totp-index">${index + 1}</span>
+              <span class="totp-label" title="${escapeHtml(item.label)}">${escapeHtml(shortLabel)}</span>
+            </div>
+            <div class="totp-card-tools">
+              <span class="totp-time" data-totp-time="${index}">30s</span>
+              <button class="tiny-icon-button totp-remove" data-remove-totp="${index}" type="button" title="Xóa mã này" aria-label="Xóa mã 2FA số ${index + 1}">
+                <i data-lucide="trash-2"></i>
+              </button>
+            </div>
           </div>
           <div class="totp-code-row">
             <strong class="totp-code" data-totp-code="${index}">------</strong>
@@ -556,6 +581,7 @@ function renderTotpCards() {
       `;
     })
     .join("");
+  refreshIcons();
 }
 
 async function updateTotpCards() {
@@ -609,6 +635,34 @@ async function startTotp() {
       });
     }, 1000);
     setTotpStatus(`Đang hiển thị ${items.length.toLocaleString()} mã 2FA`, "ok");
+  } catch (error) {
+    stopTotpTimer();
+    renderTotpEmpty(error.message);
+    setTotpStatus(error.message, "error");
+  }
+}
+
+function syncTotpInputFromState() {
+  els.totpInput.value = state.totpItems.map((item) => item.source || item.secret).join("\n");
+}
+
+async function removeTotpItem(index) {
+  if (!state.totpItems[index]) return;
+
+  state.totpItems.splice(index, 1);
+  syncTotpInputFromState();
+
+  if (!state.totpItems.length) {
+    stopTotpTimer();
+    renderTotpEmpty();
+    setTotpStatus("Chưa có mã 2FA");
+    return;
+  }
+
+  renderTotpCards();
+  try {
+    await updateTotpCards();
+    setTotpStatus(`Đang hiển thị ${state.totpItems.length.toLocaleString()} mã 2FA`, "ok");
   } catch (error) {
     stopTotpTimer();
     renderTotpEmpty(error.message);
@@ -1028,6 +1082,12 @@ function bindEvents() {
     }
   });
   els.totpGrid.addEventListener("click", async (event) => {
+    const removeTotp = event.target.closest("[data-remove-totp]");
+    if (removeTotp) {
+      await removeTotpItem(Number(removeTotp.dataset.removeTotp));
+      return;
+    }
+
     const copyTotp = event.target.closest("[data-copy-totp]");
     if (!copyTotp) return;
 
