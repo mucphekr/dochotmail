@@ -34,28 +34,54 @@ otpauth://totp/Google:user@example.com?secret=JBSWY3DPEHPK3PXP&issuer=Google
 
 Ma 2FA duoc tao truc tiep trong trinh duyet va khong gui secret len backend.
 
-## Tach dinh dang mail
+## Tach du lieu
 
-Tab `Tach dinh dang` ho tro tach cac dong Hotmail/Gmail ngan cach bang dau `|`, vi du:
-
-```text
-email@gmail.com|password|refresh_token|client_id
-```
-
-Sau khi bam `Tach dinh dang`, co the copy rieng tung cot `email`, `password`, `refresh_token`, `client_id`, copy tung o trong bang, hoac copy lai tat ca theo format goc.
-
-## Gop dinh dang mail
-
-Tab `Gop dinh dang` chuyen cac dong dang tab/khoang trang thanh dau `|`:
+Tab `Tach du lieu` ho tro tach du lieu ngan cach bang dau `|`, vi du:
 
 ```text
-kimuralab4@gmail.com 0123asdf@#L m2c5ycrcstcefnqmd2sd3t32ifkgobmc
+A|B|C|D|E
 ```
 
 Thanh:
 
 ```text
-kimuralab4@gmail.com|0123asdf@#L|m2c5ycrcstcefnqmd2sd3t32ifkgobmc
+A
+B
+C
+D
+E
+```
+
+Sau khi bam `Tach du lieu`, moi phan du lieu giua dau `|` se thanh mot hang rieng.
+
+## Gop du lieu
+
+Tab `Gop du lieu` chuyen moi dong du lieu thanh mot chuoi ngan cach bang dau `|`:
+
+```text
+A
+B
+C
+D
+E
+```
+
+Thanh:
+
+```text
+A|B|C|D|E
+```
+
+Neu paste mot dong co nhieu cot ngan cach bang tab/khoang trang, app se doi dau ngan cot thanh `|` va giu nguyen khoang trang trong cot cuoi:
+
+```text
+learoma093@gmail.com    XQQSQ8tFEhpz1q    qant j6pj xoeg galv royt abv3 z5j2 uzjo
+```
+
+Thanh:
+
+```text
+learoma093@gmail.com|XQQSQ8tFEhpz1q|qant j6pj xoeg galv royt abv3 z5j2 uzjo
 ```
 
 ## Chay local

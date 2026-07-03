@@ -451,32 +451,17 @@ button svg {
 }
 
 .split-table {
-  min-width: 980px;
+  min-width: 520px;
 }
 
 .split-table th:nth-child(1),
 .split-table td:nth-child(1) {
-  width: 5%;
+  width: 12%;
 }
 
 .split-table th:nth-child(2),
 .split-table td:nth-child(2) {
-  width: 20%;
-}
-
-.split-table th:nth-child(3),
-.split-table td:nth-child(3) {
-  width: 17%;
-}
-
-.split-table th:nth-child(4),
-.split-table td:nth-child(4) {
-  width: 38%;
-}
-
-.split-table th:nth-child(5),
-.split-table td:nth-child(5) {
-  width: 20%;
+  width: 88%;
 }
 
 .split-cell {

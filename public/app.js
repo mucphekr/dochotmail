@@ -58,10 +58,6 @@ const els = {
   splitClearBtn: $("#splitClearBtn"),
   splitStatus: $("#splitStatus"),
   splitResultBody: $("#splitResultBody"),
-  copySplitEmailBtn: $("#copySplitEmailBtn"),
-  copySplitPasswordBtn: $("#copySplitPasswordBtn"),
-  copySplitRefreshBtn: $("#copySplitRefreshBtn"),
-  copySplitClientBtn: $("#copySplitClientBtn"),
   copySplitAllBtn: $("#copySplitAllBtn"),
   mergeInput: $("#mergeInput"),
   mergeOutput: $("#mergeOutput"),
@@ -75,7 +71,6 @@ const EMAIL_PATTERN = "[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\\.[a-zA
 const UUID_PATTERN = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
 const EMAIL_RE = new RegExp(EMAIL_PATTERN, "g");
 const ACCOUNT_UUID_RE = new RegExp(`${EMAIL_PATTERN}\\|[\\s\\S]*?\\|${UUID_PATTERN}(?=[\\s,;]*${EMAIL_PATTERN}|[\\s,;]*$)`, "g");
-const UUID_EXACT_RE = new RegExp(`^${UUID_PATTERN}$`);
 const TOTP_PERIOD_SECONDS = 30;
 const TOTP_DIGITS = 6;
 
@@ -248,42 +243,20 @@ function preview(value) {
   return text.length > 92 ? `${text.slice(0, 92)}...` : text;
 }
 
-function parseSplitLine(line, index) {
-  const raw = normalizeAccountLine(line);
-  const parts = raw.split("|").map((part) => part.trim());
-  const row = {
-    index,
-    raw,
-    email: parts[0] || "",
-    password: "",
-    refreshToken: "",
-    clientId: "",
-    parts: parts.length
-  };
-
-  if (parts.length >= 4) {
-    row.password = parts[1] || "";
-    row.refreshToken = parts.slice(2, -1).join("|").trim();
-    row.clientId = parts[parts.length - 1] || "";
-  } else if (parts.length === 3) {
-    if (UUID_EXACT_RE.test(parts[2] || "")) {
-      row.refreshToken = parts[1] || "";
-      row.clientId = parts[2] || "";
-    } else {
-      row.password = parts[1] || "";
-      row.refreshToken = parts[2] || "";
-    }
-  } else if (parts.length === 2) {
-    row.password = parts[1] || "";
-  }
-
-  return row;
+function parseSplitRows(value) {
+  return String(value || "")
+    .split(/\||\r?\n/)
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((part, index) => ({
+      index,
+      value: part
+    }));
 }
 
-function parseSplitRows(value) {
-  return splitAccounts(value)
-    .map((line, index) => parseSplitLine(line, index))
-    .filter((row) => row.raw);
+function isStructuredMergeLine(line) {
+  const raw = String(line || "").trim();
+  return raw.includes("|") || raw.includes("\t") || /^\S+\s+\S+\s+[\s\S]+$/.test(raw);
 }
 
 function mergeFormatLine(line) {
@@ -292,42 +265,46 @@ function mergeFormatLine(line) {
   if (raw.includes("|")) return normalizeAccountLine(raw);
 
   if (raw.includes("\t")) {
-    const tabFields = raw
+    return raw
       .split(/\t+/)
       .map((part) => part.trim())
-      .filter(Boolean);
-
-    if (tabFields.length >= 3) {
-      return tabFields.join("|");
-    }
+      .filter(Boolean)
+      .join("|");
   }
 
-  const fields = raw.match(/^(\S+)(?:\s+(\S+))?(?:\s+([\s\S]+))?$/);
+  const fields = raw.match(/^(\S+)\s+(\S+)\s+([\s\S]+)$/);
   if (!fields) return raw;
 
   return [fields[1], fields[2], fields[3]]
-    .filter(Boolean)
     .map((part) => part.trim())
+    .filter(Boolean)
     .join("|");
 }
 
 function mergeFormatRows(value) {
-  return String(value || "")
+  const lines = String(value || "")
     .split(/\r?\n/)
-    .map(mergeFormatLine)
+    .map((part) => part.trim())
     .filter(Boolean);
+
+  if (!lines.length) return [];
+  if (lines.some(isStructuredMergeLine)) {
+    return lines.map(mergeFormatLine).filter(Boolean);
+  }
+
+  return [lines.join("|")];
 }
 
 function renderSplitEmpty(message = "Chưa có dữ liệu") {
-  els.splitResultBody.innerHTML = `<tr><td class="empty-state" colspan="5">${escapeHtml(message)}</td></tr>`;
+  els.splitResultBody.innerHTML = `<tr><td class="empty-state" colspan="2">${escapeHtml(message)}</td></tr>`;
 }
 
-function splitValueCell(row, field) {
-  const value = row[field] || "";
+function splitValueCell(row) {
+  const value = row.value || "";
   return `
     <div class="split-cell">
       <span title="${escapeHtml(value)}">${escapeHtml(value || "-")}</span>
-      <button class="tiny-copy" data-copy-split-field="${field}" data-copy-split-index="${row.index}" type="button" title="Copy trường này">Copy</button>
+      <button class="tiny-copy" data-copy-split-index="${row.index}" type="button" title="Copy dòng này">Copy</button>
     </div>
   `;
 }
@@ -342,10 +319,7 @@ function renderSplitRows() {
     .map((row) => `
       <tr>
         <td>${row.index + 1}</td>
-        <td>${splitValueCell(row, "email")}</td>
-        <td>${splitValueCell(row, "password")}</td>
-        <td>${splitValueCell(row, "refreshToken")}</td>
-        <td>${splitValueCell(row, "clientId")}</td>
+        <td>${splitValueCell(row)}</td>
       </tr>
     `)
     .join("");
@@ -355,7 +329,7 @@ function parseSplitInput() {
   state.splitRows = parseSplitRows(els.splitInput.value);
   renderSplitRows();
   setSplitStatus(
-    state.splitRows.length ? `Đã tách ${state.splitRows.length.toLocaleString()} dòng` : "Chưa có dữ liệu hợp lệ",
+    state.splitRows.length ? `Đã tách ${state.splitRows.length.toLocaleString()} hàng` : "Chưa có dữ liệu hợp lệ",
     state.splitRows.length ? "ok" : "error"
   );
 }
@@ -396,29 +370,9 @@ function clearSplitData() {
   setSplitStatus("Sẵn sàng");
 }
 
-function splitColumnText(field) {
-  return state.splitRows
-    .map((row) => row[field])
-    .filter(Boolean)
-    .join("\n");
-}
-
-async function copySplitColumn(field, button) {
-  const labels = {
-    email: "email",
-    password: "password",
-    refreshToken: "refresh_token",
-    clientId: "client_id"
-  };
-  const text = splitColumnText(field);
-  const copied = await copyText(text);
-  if (copied) flashCopyButton(button);
-  setSplitStatus(text ? `Đã sao chép ${labels[field]}` : "Chưa có dữ liệu để sao chép", text ? "ok" : "error");
-}
-
 async function copySplitAll(button) {
   const text = state.splitRows
-    .map((row) => row.raw)
+    .map((row) => row.value)
     .join("\n");
   const copied = await copyText(text);
   if (copied) flashCopyButton(button);
@@ -1068,10 +1022,6 @@ function bindEvents() {
   els.totpClearBtn.addEventListener("click", clearTotp);
   els.splitParseBtn.addEventListener("click", parseSplitInput);
   els.splitClearBtn.addEventListener("click", clearSplitData);
-  els.copySplitEmailBtn.addEventListener("click", (event) => copySplitColumn("email", event.currentTarget));
-  els.copySplitPasswordBtn.addEventListener("click", (event) => copySplitColumn("password", event.currentTarget));
-  els.copySplitRefreshBtn.addEventListener("click", (event) => copySplitColumn("refreshToken", event.currentTarget));
-  els.copySplitClientBtn.addEventListener("click", (event) => copySplitColumn("clientId", event.currentTarget));
   els.copySplitAllBtn.addEventListener("click", (event) => copySplitAll(event.currentTarget));
   els.mergeFormatBtn.addEventListener("click", mergeFormatInput);
   els.mergeCopyBtn.addEventListener("click", (event) => copyMergeOutput(event.currentTarget));
@@ -1099,15 +1049,14 @@ function bindEvents() {
     setTotpStatus("Đã sao chép mã 2FA", "ok");
   });
   els.splitResultBody.addEventListener("click", async (event) => {
-    const copySplit = event.target.closest("[data-copy-split-field]");
+    const copySplit = event.target.closest("[data-copy-split-index]");
     if (!copySplit) return;
 
     const row = state.splitRows[Number(copySplit.dataset.copySplitIndex)];
-    const field = copySplit.dataset.copySplitField;
-    const value = row?.[field] || "";
+    const value = row?.value || "";
     const copied = await copyText(value);
     if (copied) flashCopyButton(copySplit);
-    setSplitStatus(value ? "Đã sao chép trường đã chọn" : "Trường này đang trống", value ? "ok" : "error");
+    setSplitStatus(value ? "Đã sao chép dòng đã chọn" : "Dòng này đang trống", value ? "ok" : "error");
   });
   els.resultBody.addEventListener("click", async (event) => {
     const copy = event.target.closest("[data-copy-code]");

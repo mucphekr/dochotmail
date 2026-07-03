@@ -13,8 +13,8 @@
       <nav class="main-menu" aria-label="Menu chính">
         <button id="mailViewBtn" class="menu-button active" type="button">Đọc mail</button>
         <button id="twofaViewBtn" class="menu-button" type="button">2FA Google</button>
-        <button id="splitViewBtn" class="menu-button" type="button">Tách định dạng</button>
-        <button id="mergeViewBtn" class="menu-button" type="button">Gộp định dạng</button>
+        <button id="splitViewBtn" class="menu-button" type="button">Tách dữ liệu</button>
+        <button id="mergeViewBtn" class="menu-button" type="button">Gộp dữ liệu</button>
       </nav>
       <div class="top-actions">
         <p id="serverMeta">Đang kết nối...</p>
@@ -206,19 +206,19 @@
           <div>
             <h2>
               <i data-lucide="columns-3"></i>
-              <span>Tách định dạng mail</span>
+              <span>Tách dữ liệu</span>
             </h2>
             <p id="splitStatus">Sẵn sàng</p>
           </div>
         </div>
 
-        <label class="field-label" for="splitInput">Nhập mỗi dòng 1 tài khoản dạng: email|password|refresh_token|client_id</label>
-        <textarea id="splitInput" spellcheck="false" placeholder="email@gmail.com|password|refresh_token|client_id"></textarea>
+        <label class="field-label" for="splitInput">Nhập dữ liệu ngăn cách bằng dấu |</label>
+        <textarea id="splitInput" spellcheck="false" placeholder="A|B|C|D|E"></textarea>
 
         <div class="run-row">
           <button id="splitParseBtn" class="primary-button" type="button">
             <i data-lucide="columns-3"></i>
-            <span>Tách định dạng</span>
+            <span>Tách dữ liệu</span>
           </button>
           <button id="splitClearBtn" class="danger-button" type="button">
             <i data-lucide="x"></i>
@@ -227,22 +227,6 @@
         </div>
 
         <div class="split-copy-row">
-          <button id="copySplitEmailBtn" class="secondary-button" type="button">
-            <i data-lucide="mail"></i>
-            <span>Copy email</span>
-          </button>
-          <button id="copySplitPasswordBtn" class="secondary-button" type="button">
-            <i data-lucide="lock-keyhole"></i>
-            <span>Copy password</span>
-          </button>
-          <button id="copySplitRefreshBtn" class="secondary-button" type="button">
-            <i data-lucide="refresh-cw"></i>
-            <span>Copy refresh</span>
-          </button>
-          <button id="copySplitClientBtn" class="secondary-button" type="button">
-            <i data-lucide="badge-check"></i>
-            <span>Copy client_id</span>
-          </button>
           <button id="copySplitAllBtn" class="secondary-button" type="button">
             <i data-lucide="copy"></i>
             <span>Copy tất cả</span>
@@ -254,15 +238,12 @@
             <thead>
               <tr>
                 <th>#</th>
-                <th>Email</th>
-                <th>Password</th>
-                <th>Refresh token</th>
-                <th>Client ID</th>
+                <th>Dữ liệu</th>
               </tr>
             </thead>
             <tbody id="splitResultBody">
               <tr>
-                <td class="empty-state" colspan="5">Chưa có dữ liệu</td>
+                <td class="empty-state" colspan="2">Chưa có dữ liệu</td>
               </tr>
             </tbody>
           </table>
@@ -276,19 +257,19 @@
           <div>
             <h2>
               <i data-lucide="git-merge"></i>
-              <span>Gộp định dạng mail</span>
+              <span>Gộp dữ liệu</span>
             </h2>
             <p id="mergeStatus">Sẵn sàng</p>
           </div>
         </div>
 
-        <label class="field-label" for="mergeInput">Nhập mỗi dòng 1 tài khoản ngăn bằng tab hoặc khoảng trắng</label>
-        <textarea id="mergeInput" spellcheck="false" placeholder="email@gmail.com    password    token"></textarea>
+        <label class="field-label" for="mergeInput">Nhập mỗi dòng 1 dữ liệu, hoặc 1 dòng có các cột ngăn bằng tab/khoảng trắng</label>
+        <textarea id="mergeInput" spellcheck="false" placeholder="learoma093@gmail.com    XQQSQ8tFEhpz1q    qant j6pj xoeg galv royt abv3 z5j2 uzjo"></textarea>
 
         <div class="run-row">
           <button id="mergeFormatBtn" class="primary-button" type="button">
             <i data-lucide="git-merge"></i>
-            <span>Gộp định dạng</span>
+            <span>Gộp dữ liệu</span>
           </button>
           <button id="mergeCopyBtn" class="secondary-button" type="button">
             <i data-lucide="copy"></i>
@@ -300,8 +281,8 @@
           </button>
         </div>
 
-        <label class="field-label merge-output-label" for="mergeOutput">Kết quả dạng dấu |</label>
-        <textarea id="mergeOutput" class="merge-output" spellcheck="false" readonly placeholder="email@gmail.com|password|token"></textarea>
+        <label class="field-label merge-output-label" for="mergeOutput">Kết quả gộp bằng dấu |</label>
+        <textarea id="mergeOutput" class="merge-output" spellcheck="false" readonly placeholder="A|B|C|D|E"></textarea>
       </section>
     </main>
 
