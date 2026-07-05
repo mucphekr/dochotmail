@@ -59,6 +59,7 @@ const els = {
   splitStatus: $("#splitStatus"),
   splitResultBody: $("#splitResultBody"),
   copySplitAllBtn: $("#copySplitAllBtn"),
+  splitColumnActions: $("#splitColumnActions"),
   mergeInput: $("#mergeInput"),
   mergeOutput: $("#mergeOutput"),
   mergeFormatBtn: $("#mergeFormatBtn"),
@@ -245,13 +246,18 @@ function preview(value) {
 
 function parseSplitRows(value) {
   return String(value || "")
-    .split(/\||\r?\n/)
-    .map((part) => part.trim())
+    .split(/\r?\n/)
+    .map((line) => line.trim())
     .filter(Boolean)
-    .map((part, index) => ({
+    .map((line, index) => ({
       index,
-      value: part
-    }));
+      cells: line.split("|").map((part) => part.trim())
+    }))
+    .filter((row) => row.cells.some(Boolean));
+}
+
+function splitColumnCount() {
+  return state.splitRows.reduce((max, row) => Math.max(max, row.cells.length), 0);
 }
 
 function isStructuredMergeLine(line) {
@@ -295,16 +301,38 @@ function mergeFormatRows(value) {
   return [lines.join("|")];
 }
 
+function renderSplitHead(columnCount = 1) {
+  const head = els.splitResultBody.closest("table")?.querySelector("thead");
+  if (!head) return;
+
+  const columns = Array.from({ length: columnCount }, (_, index) => `<th>Cột ${index + 1}</th>`).join("");
+  head.innerHTML = `<tr><th>#</th>${columns}</tr>`;
+}
+
+function renderSplitColumnActions(columnCount = 0) {
+  if (!els.splitColumnActions) return;
+
+  els.splitColumnActions.innerHTML = columnCount
+    ? Array.from({ length: columnCount }, (_, index) => `
+        <button class="secondary-button split-column-button" data-copy-split-column="${index}" type="button" title="Copy toàn bộ cột ${index + 1}">
+          <i data-lucide="copy"></i>
+          <span>Copy cột ${index + 1}</span>
+        </button>
+      `).join("")
+    : "";
+  refreshIcons();
+}
+
 function renderSplitEmpty(message = "Chưa có dữ liệu") {
+  renderSplitHead(1);
+  renderSplitColumnActions(0);
   els.splitResultBody.innerHTML = `<tr><td class="empty-state" colspan="2">${escapeHtml(message)}</td></tr>`;
 }
 
-function splitValueCell(row) {
-  const value = row.value || "";
+function splitValueCell(value) {
   return `
     <div class="split-cell">
       <span title="${escapeHtml(value)}">${escapeHtml(value || "-")}</span>
-      <button class="tiny-copy" data-copy-split-index="${row.index}" type="button" title="Copy dòng này">Copy</button>
     </div>
   `;
 }
@@ -315,11 +343,14 @@ function renderSplitRows() {
     return;
   }
 
+  const columnCount = splitColumnCount();
+  renderSplitHead(columnCount);
+  renderSplitColumnActions(columnCount);
   els.splitResultBody.innerHTML = state.splitRows
     .map((row) => `
       <tr>
         <td>${row.index + 1}</td>
-        <td>${splitValueCell(row)}</td>
+        ${Array.from({ length: columnCount }, (_, index) => `<td>${splitValueCell(row.cells[index] || "")}</td>`).join("")}
       </tr>
     `)
     .join("");
@@ -328,8 +359,11 @@ function renderSplitRows() {
 function parseSplitInput() {
   state.splitRows = parseSplitRows(els.splitInput.value);
   renderSplitRows();
+  const columnCount = splitColumnCount();
   setSplitStatus(
-    state.splitRows.length ? `Đã tách ${state.splitRows.length.toLocaleString()} hàng` : "Chưa có dữ liệu hợp lệ",
+    state.splitRows.length
+      ? `Đã tách ${state.splitRows.length.toLocaleString()} hàng, ${columnCount.toLocaleString()} cột`
+      : "Chưa có dữ liệu hợp lệ",
     state.splitRows.length ? "ok" : "error"
   );
 }
@@ -372,11 +406,21 @@ function clearSplitData() {
 
 async function copySplitAll(button) {
   const text = state.splitRows
-    .map((row) => row.value)
+    .map((row) => row.cells.join("|"))
     .join("\n");
   const copied = await copyText(text);
   if (copied) flashCopyButton(button);
   setSplitStatus(text ? "Đã sao chép tất cả" : "Chưa có dữ liệu để sao chép", text ? "ok" : "error");
+}
+
+async function copySplitColumn(columnIndex, button) {
+  const text = state.splitRows
+    .map((row) => row.cells[columnIndex] || "")
+    .join("\n")
+    .replace(/\n+$/g, "");
+  const copied = await copyText(text);
+  if (copied) flashCopyButton(button);
+  setSplitStatus(text ? `Đã sao chép cột ${columnIndex + 1}` : `Cột ${columnIndex + 1} đang trống`, text ? "ok" : "error");
 }
 
 function cleanTotpSecret(value) {
@@ -1023,6 +1067,12 @@ function bindEvents() {
   els.splitParseBtn.addEventListener("click", parseSplitInput);
   els.splitClearBtn.addEventListener("click", clearSplitData);
   els.copySplitAllBtn.addEventListener("click", (event) => copySplitAll(event.currentTarget));
+  els.splitColumnActions.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-copy-split-column]");
+    if (!button) return;
+
+    copySplitColumn(Number(button.dataset.copySplitColumn), button);
+  });
   els.mergeFormatBtn.addEventListener("click", mergeFormatInput);
   els.mergeCopyBtn.addEventListener("click", (event) => copyMergeOutput(event.currentTarget));
   els.mergeClearBtn.addEventListener("click", clearMergeData);
@@ -1047,16 +1097,6 @@ function bindEvents() {
     const copied = await copyText(item.code);
     if (copied) flashCopyButton(copyTotp);
     setTotpStatus("Đã sao chép mã 2FA", "ok");
-  });
-  els.splitResultBody.addEventListener("click", async (event) => {
-    const copySplit = event.target.closest("[data-copy-split-index]");
-    if (!copySplit) return;
-
-    const row = state.splitRows[Number(copySplit.dataset.copySplitIndex)];
-    const value = row?.value || "";
-    const copied = await copyText(value);
-    if (copied) flashCopyButton(copySplit);
-    setSplitStatus(value ? "Đã sao chép dòng đã chọn" : "Dòng này đang trống", value ? "ok" : "error");
   });
   els.resultBody.addEventListener("click", async (event) => {
     const copy = event.target.closest("[data-copy-code]");

@@ -435,12 +435,23 @@ button svg {
 .split-copy-row {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
   margin-top: 10px;
 }
 
 .split-copy-row .secondary-button {
   min-height: 28px;
+}
+
+.split-column-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.split-column-actions:empty {
+  display: none;
 }
 
 .split-table-wrap {
@@ -454,14 +465,16 @@ button svg {
   min-width: 520px;
 }
 
-.split-table th:nth-child(1),
-.split-table td:nth-child(1) {
-  width: 12%;
+.split-table th,
+.split-table td {
+  width: auto;
+  min-width: 170px;
 }
 
-.split-table th:nth-child(2),
-.split-table td:nth-child(2) {
-  width: 88%;
+.split-table th:first-child,
+.split-table td:first-child {
+  width: 54px;
+  min-width: 54px;
 }
 
 .split-cell {
