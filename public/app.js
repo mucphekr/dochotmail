@@ -393,7 +393,10 @@ async function copyMergeOutput(button) {
 
   const text = els.mergeOutput.value.trim();
   const copied = await copyText(text);
-  if (copied) flashCopyButton(button);
+  if (copied) {
+    flashCopyButton(button);
+    showToast("Đã sao chép kết quả gộp dữ liệu", "success");
+  }
   setMergeStatus(text ? "Đã sao chép kết quả" : "Chưa có dữ liệu để sao chép", text ? "ok" : "error");
 }
 
@@ -409,7 +412,10 @@ async function copySplitAll(button) {
     .map((row) => row.cells.join("|"))
     .join("\n");
   const copied = await copyText(text);
-  if (copied) flashCopyButton(button);
+  if (copied) {
+    flashCopyButton(button);
+    showToast("Đã sao chép toàn bộ dữ liệu tách", "success");
+  }
   setSplitStatus(text ? "Đã sao chép tất cả" : "Chưa có dữ liệu để sao chép", text ? "ok" : "error");
 }
 
@@ -419,7 +425,10 @@ async function copySplitColumn(columnIndex, button) {
     .join("\n")
     .replace(/\n+$/g, "");
   const copied = await copyText(text);
-  if (copied) flashCopyButton(button);
+  if (copied) {
+    flashCopyButton(button);
+    showToast(`Đã sao chép dữ liệu Cột ${columnIndex + 1}`, "success");
+  }
   setSplitStatus(text ? `Đã sao chép cột ${columnIndex + 1}` : `Cột ${columnIndex + 1} đang trống`, text ? "ok" : "error");
 }
 
@@ -569,8 +578,17 @@ function renderTotpCards() {
             </div>
           </div>
           <div class="totp-code-row">
-            <strong class="totp-code" data-totp-code="${index}">------</strong>
-            <button class="tiny-copy" data-copy-totp="${index}" type="button" title="Copy mã 2FA">Copy</button>
+            <div class="totp-code-badge" data-copy-totp="${index}" title="Bấm vào đây để copy nhanh mã 2FA">
+              <strong class="totp-code" data-totp-code="${index}">------</strong>
+              <span class="totp-copy-hint" data-copy-hint="${index}">
+                <i data-lucide="copy"></i>
+                <span>Copy</span>
+              </span>
+            </div>
+            <button class="tiny-copy" data-copy-totp="${index}" type="button" title="Copy mã 2FA">
+              <i data-lucide="copy"></i>
+              <span>Copy</span>
+            </button>
           </div>
           <div class="totp-progress" aria-hidden="true">
             <div data-totp-progress="${index}"></div>
@@ -598,7 +616,10 @@ async function updateTotpCards() {
     const timeEl = els.totpGrid.querySelector(`[data-totp-time="${index}"]`);
     const progressEl = els.totpGrid.querySelector(`[data-totp-progress="${index}"]`);
     if (codeEl) codeEl.textContent = item.code;
-    if (timeEl) timeEl.textContent = `${timeLeft}s`;
+    if (timeEl) {
+      timeEl.textContent = `${timeLeft}s`;
+      timeEl.classList.toggle("totp-time-warning", timeLeft <= 5);
+    }
     if (progressEl) progressEl.style.width = progressWidth;
   }));
 }
@@ -788,9 +809,10 @@ function updateRow(index, data) {
     wrap.className = "cell-copy otp-copy";
 
     const code = document.createElement("strong");
-    code.className = "otp-value";
-    code.title = item.code;
+    code.className = "otp-value otp-clickable";
+    code.title = "Bấm để copy nhanh mã OTP này";
     code.textContent = item.code;
+    code.dataset.copyCode = item.code;
     wrap.appendChild(code);
 
     const copy = document.createElement("button");
@@ -946,6 +968,23 @@ async function copyText(text) {
   return true;
 }
 
+function showToast(message, type = "success") {
+  const container = document.getElementById("toastContainer");
+  if (!container) return;
+
+  const toast = document.createElement("div");
+  toast.className = `toast toast-${type}`;
+  const icon = type === "success" ? '<i data-lucide="check-circle-2"></i>' : '<i data-lucide="info"></i>';
+  toast.innerHTML = `${icon}<span>${escapeHtml(message)}</span>`;
+  container.appendChild(toast);
+  refreshIcons();
+
+  setTimeout(() => {
+    toast.classList.add("toast-leave");
+    setTimeout(() => toast.remove(), 250);
+  }, 2200);
+}
+
 function flashCopyButton(button) {
   if (!button) return;
 
@@ -961,14 +1000,25 @@ function flashCopyButton(button) {
 async function copyAll(event) {
   const text = normalizeCopyRows("pair");
   const copied = await copyText(text);
-  if (copied) flashCopyButton(event?.currentTarget);
+  if (copied) {
+    flashCopyButton(event?.currentTarget);
+    showToast("Đã sao chép danh sách Email|OTP", "success");
+  }
   setStatus(text ? "Đã sao chép Email|OTP" : "Chưa có dữ liệu để sao chép", text ? "ok" : "error");
 }
 
 async function copyQuick(kind, button) {
   const text = normalizeCopyRows(kind);
   const copied = await copyText(text);
-  if (copied) flashCopyButton(button);
+  if (copied) {
+    flashCopyButton(button);
+    const labels = {
+      email: "email",
+      code: "mã OTP",
+      pair: "Email|OTP"
+    };
+    showToast(`Đã sao chép danh sách ${labels[kind]}`, "success");
+  }
 
   const labels = {
     email: "email",
@@ -1091,26 +1141,48 @@ function bindEvents() {
     const copyTotp = event.target.closest("[data-copy-totp]");
     if (!copyTotp) return;
 
-    const item = state.totpItems[Number(copyTotp.dataset.copyTotp)];
-    if (!item?.code) return;
+    const index = Number(copyTotp.dataset.copyTotp);
+    const item = state.totpItems[index];
+    if (!item?.code || item.code === "------") return;
 
     const copied = await copyText(item.code);
-    if (copied) flashCopyButton(copyTotp);
-    setTotpStatus("Đã sao chép mã 2FA", "ok");
+    if (copied) {
+      flashCopyButton(copyTotp);
+      const hint = els.totpGrid.querySelector(`[data-copy-hint="${index}"]`);
+      if (hint) {
+        const originalHtml = hint.innerHTML;
+        hint.innerHTML = '<i data-lucide="check"></i><span>Đã chép!</span>';
+        refreshIcons();
+        setTimeout(() => {
+          hint.innerHTML = originalHtml;
+          refreshIcons();
+        }, 1200);
+      }
+      showToast(`Đã sao chép mã 2FA: ${item.code}`, "success");
+      setTotpStatus(`Đã sao chép mã 2FA (${item.code})`, "ok");
+    }
   });
   els.resultBody.addEventListener("click", async (event) => {
     const copy = event.target.closest("[data-copy-code]");
     const copyEmail = event.target.closest("[data-copy-email]");
     const detail = event.target.closest("[data-content-index]");
     if (copy) {
-      const copied = await copyText(copy.dataset.copyCode);
-      if (copied) flashCopyButton(copy);
-      setStatus("Đã sao chép mã", "ok");
+      const code = copy.dataset.copyCode;
+      const copied = await copyText(code);
+      if (copied) {
+        flashCopyButton(copy);
+        showToast(`Đã sao chép mã OTP: ${code}`, "success");
+        setStatus("Đã sao chép mã OTP", "ok");
+      }
     }
     if (copyEmail) {
-      const copied = await copyText(copyEmail.dataset.copyEmail);
-      if (copied) flashCopyButton(copyEmail);
-      setStatus("Đã sao chép email", "ok");
+      const email = copyEmail.dataset.copyEmail;
+      const copied = await copyText(email);
+      if (copied) {
+        flashCopyButton(copyEmail);
+        showToast(`Đã sao chép email: ${email}`, "success");
+        setStatus("Đã sao chép email", "ok");
+      }
     }
     if (detail) {
       openDetail(detail.dataset.contentIndex);

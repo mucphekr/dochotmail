@@ -3,113 +3,183 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Check code hotmail</title>
+    <title>Check code hotmail - Mực Phệ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/styles.css">
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
     <script src="/app.js" defer></script>
   </head>
   <body>
+    <!-- Top Navigation Bar -->
     <header class="topbar">
-      <nav class="main-menu" aria-label="Menu chính">
-        <button id="mailViewBtn" class="menu-button active" type="button">Đọc mail</button>
-        <button id="twofaViewBtn" class="menu-button" type="button">2FA Google</button>
-        <button id="splitViewBtn" class="menu-button" type="button">Tách dữ liệu</button>
-        <button id="mergeViewBtn" class="menu-button" type="button">Gộp dữ liệu</button>
-      </nav>
-      <div class="top-actions">
-        <p id="serverMeta">Đang kết nối...</p>
-        <span id="summaryBadge" class="summary-badge">0 / 0</span>
-        <button id="copyAllBtn" class="icon-button" type="button" title="Sao chép kết quả">
-          <i data-lucide="copy"></i>
-          <span>Sao chép</span>
-        </button>
-        <button id="exportBtn" class="icon-button" type="button" title="Xuất CSV">
-          <i data-lucide="download"></i>
-          <span>CSV</span>
-        </button>
+      <div class="topbar-inner">
+        <div class="brand">
+          <div class="brand-icon">
+            <i data-lucide="mail-check"></i>
+          </div>
+          <div class="brand-info">
+            <h1 class="brand-title">DocHotmail</h1>
+            <span class="brand-badge">by Mực Phệ</span>
+          </div>
+        </div>
+
+        <nav class="main-menu" aria-label="Menu chính">
+          <button id="mailViewBtn" class="menu-button active" type="button">
+            <i data-lucide="inbox"></i>
+            <span>Đọc mail</span>
+          </button>
+          <button id="twofaViewBtn" class="menu-button" type="button">
+            <i data-lucide="shield-check"></i>
+            <span>2FA Google</span>
+          </button>
+          <button id="splitViewBtn" class="menu-button" type="button">
+            <i data-lucide="columns-3"></i>
+            <span>Tách dữ liệu</span>
+          </button>
+          <button id="mergeViewBtn" class="menu-button" type="button">
+            <i data-lucide="git-merge"></i>
+            <span>Gộp dữ liệu</span>
+          </button>
+        </nav>
+
+        <div class="top-actions">
+          <div class="server-status-wrap" title="Trạng thái máy chủ">
+            <span class="pulse-indicator"></span>
+            <p id="serverMeta">Đang kết nối...</p>
+          </div>
+          <span id="summaryBadge" class="summary-badge" title="Tiến độ xử lý">0 / 0</span>
+          <div class="top-buttons">
+            <button id="copyAllBtn" class="icon-button" type="button" title="Sao chép toàn bộ kết quả Email|OTP">
+              <i data-lucide="copy"></i>
+              <span>Sao chép</span>
+            </button>
+            <button id="exportBtn" class="icon-button" type="button" title="Xuất dữ liệu ra file CSV">
+              <i data-lucide="download"></i>
+              <span>Xuất CSV</span>
+            </button>
+          </div>
+        </div>
       </div>
     </header>
 
+    <!-- WORKSPACE 1: Đọc Mail -->
     <main id="mailWorkspace" class="workspace">
-      <section class="panel input-panel">
+      <!-- Input & Configuration Card -->
+      <section class="panel input-panel card">
         <div class="panel-head">
-          <div>
-            <h2>
+          <div class="head-title-wrap">
+            <div class="panel-icon-badge">
               <i data-lucide="mail"></i>
-              <span>Check code hotmail by Mực Phệ</span>
-            </h2>
-            <p id="lineCount">0 tài khoản</p>
+            </div>
+            <div>
+              <h2>Check code Hotmail</h2>
+              <p class="panel-subtitle">Nhập mỗi dòng 1 tài khoản theo định dạng tiêu chuẩn</p>
+            </div>
           </div>
           <div class="panel-actions">
-            <button id="formatBtn" class="ghost-button" type="button" title="Chuẩn hóa mỗi tài khoản một dòng">
+            <span id="lineCount" class="badge-count">0 tài khoản</span>
+            <button id="formatBtn" class="secondary-button" type="button" title="Chuẩn hóa mỗi tài khoản một dòng">
               <i data-lucide="list-filter"></i>
               <span>Chuẩn hóa</span>
             </button>
-            <button id="clearBtn" class="ghost-button" type="button" title="Xóa dữ liệu">
-              <i data-lucide="x"></i>
+            <button id="clearBtn" class="ghost-button" type="button" title="Xóa toàn bộ ô nhập">
+              <i data-lucide="eraser"></i>
               <span>Xóa</span>
             </button>
           </div>
         </div>
 
-        <label class="field-label" for="accountInput">Nhập mỗi dòng 1 account theo định dạng: email|password|refresh_token|client_id</label>
-        <textarea id="accountInput" spellcheck="false" placeholder="email|password|refresh_token|client_id"></textarea>
+        <div class="field-group">
+          <div class="field-label-row">
+            <label class="field-label" for="accountInput">
+              <span>Danh sách tài khoản</span>
+              <span class="label-format-hint">email | password | refresh_token | client_id</span>
+            </label>
+          </div>
+          <textarea id="accountInput" spellcheck="false" placeholder="ví dụ: user@hotmail.com|password123|0.AXoA...|d3590ed6-52b3-4102-aeff-aad2292ab01c"></textarea>
+        </div>
+
         <div id="accountPreview" class="account-preview">
-          <div class="account-preview-empty">Chưa có tài khoản</div>
+          <div class="account-preview-empty">
+            <i data-lucide="list"></i>
+            <span>Chưa có tài khoản nào được nhập</span>
+          </div>
         </div>
 
         <div id="accessBox" class="access-box hidden">
-          <label class="field-label" for="accessToken">Mã truy cập</label>
-          <input id="accessToken" type="password" autocomplete="current-password" placeholder="ACCESS_TOKEN">
+          <label class="field-label" for="accessToken">Mã truy cập bảo mật (ACCESS_TOKEN)</label>
+          <div class="input-with-icon">
+            <i data-lucide="key" class="field-icon"></i>
+            <input id="accessToken" type="password" autocomplete="current-password" placeholder="Nhập access token...">
+          </div>
         </div>
 
         <div class="control-grid">
-          <label>
-            <span>Nguồn đọc</span>
-            <select id="providerSelect">
-              <option value="direct" selected>Microsoft Graph</option>
-              <option value="oauth2">DongVan OAuth2</option>
-              <option value="dongvan">DongVan Graph API</option>
-              <option value="dongvan_fallback">DongVan Graph + fallback</option>
-            </select>
-          </label>
-          <label>
-            <span>Loại mã</span>
-            <select id="typeSelect">
-              <option value="all" selected>Tất cả</option>
-              <option value="openai">OpenAI</option>
-              <option value="facebook">Facebook</option>
-              <option value="instagram">Instagram</option>
-              <option value="twitter">Twitter/X</option>
-              <option value="apple">Apple</option>
-              <option value="tiktok">TikTok</option>
-              <option value="amazon">Amazon</option>
-              <option value="lazada">Lazada</option>
-              <option value="kakaotalk">KakaoTalk</option>
-              <option value="google">Google</option>
-              <option value="shopee">Shopee</option>
-              <option value="telegram">Telegram</option>
-              <option value="wechat">WeChat</option>
-            </select>
-          </label>
-          <label>
-            <span>Số luồng</span>
-            <input id="concurrencyInput" type="number" min="1" max="50" value="10">
-          </label>
+          <div class="control-field">
+            <label for="providerSelect">
+              <i data-lucide="server"></i>
+              <span>Nguồn đọc mail</span>
+            </label>
+            <div class="select-wrapper">
+              <select id="providerSelect">
+                <option value="direct" selected>Microsoft Graph</option>
+                <option value="oauth2">DongVan OAuth2</option>
+                <option value="dongvan">DongVan Graph API</option>
+                <option value="dongvan_fallback">DongVan Graph + fallback</option>
+              </select>
+              <i data-lucide="chevron-down" class="select-arrow"></i>
+            </div>
+          </div>
+
+          <div class="control-field">
+            <label for="typeSelect">
+              <i data-lucide="tag"></i>
+              <span>Loại mã OTP cần lấy</span>
+            </label>
+            <div class="select-wrapper">
+              <select id="typeSelect">
+                <option value="all" selected>Tất cả dịch vụ</option>
+                <option value="openai">OpenAI (ChatGPT)</option>
+                <option value="facebook">Facebook (Meta)</option>
+                <option value="instagram">Instagram</option>
+                <option value="twitter">Twitter / X</option>
+                <option value="apple">Apple ID</option>
+                <option value="tiktok">TikTok</option>
+                <option value="amazon">Amazon</option>
+                <option value="lazada">Lazada</option>
+                <option value="kakaotalk">KakaoTalk</option>
+                <option value="google">Google</option>
+                <option value="shopee">Shopee</option>
+                <option value="telegram">Telegram</option>
+                <option value="wechat">WeChat</option>
+              </select>
+              <i data-lucide="chevron-down" class="select-arrow"></i>
+            </div>
+          </div>
+
+          <div class="control-field">
+            <label for="concurrencyInput">
+              <i data-lucide="zap"></i>
+              <span>Số luồng đọc song song</span>
+            </label>
+            <input id="concurrencyInput" type="number" min="1" max="50" value="10" placeholder="10">
+          </div>
         </div>
 
         <div class="run-row">
           <button id="startBtn" class="primary-button" type="button">
             <i data-lucide="play"></i>
-            <span>Đọc hòm thư</span>
+            <span>Bắt đầu đọc hòm thư</span>
           </button>
           <button id="stopBtn" class="danger-button" type="button" disabled>
             <i data-lucide="square"></i>
-            <span>Dừng</span>
+            <span>Dừng lại</span>
           </button>
-          <button id="clearMailBtn" class="danger-button clear-mail-button" type="button">
+          <button id="clearMailBtn" class="clear-mail-button" type="button" title="Xóa toàn bộ danh sách">
             <i data-lucide="trash-2"></i>
-            <span>Xóa tất cả hotmail</span>
+            <span>Xóa danh sách</span>
           </button>
         </div>
 
@@ -118,30 +188,43 @@
         </div>
       </section>
 
-      <section class="panel result-panel">
+      <!-- Results Card -->
+      <section class="panel result-panel card">
         <div class="panel-head result-head">
-          <div>
-            <h2>Kết quả</h2>
-            <p id="runStatus">Sẵn sàng</p>
+          <div class="result-title-group">
+            <div class="panel-icon-badge accent-cyan">
+              <i data-lucide="table"></i>
+            </div>
+            <div>
+              <h2>Bảng kết quả</h2>
+              <p id="runStatus" class="status-pill-ready">Sẵn sàng</p>
+            </div>
           </div>
           <div class="stats">
-            <span class="stat-ok"><b id="okCount">0</b> OK</span>
-            <span class="stat-fail"><b id="failCount">0</b> lỗi</span>
+            <span class="stat-pill stat-ok">
+              <i data-lucide="check-circle-2"></i>
+              <span><b id="okCount">0</b> Thành công</span>
+            </span>
+            <span class="stat-pill stat-fail">
+              <i data-lucide="alert-circle"></i>
+              <span><b id="failCount">0</b> Thất bại</span>
+            </span>
           </div>
         </div>
 
         <div class="quick-copy">
-          <button id="copyEmailBtn" class="secondary-button" type="button" title="Sao chép danh sách email đã xử lý">
+          <span class="quick-copy-label">Sao chép nhanh:</span>
+          <button id="copyEmailBtn" class="secondary-button pill" type="button" title="Sao chép danh sách email đã xử lý">
             <i data-lucide="mail"></i>
-            <span>Copy email</span>
+            <span>Copy Email</span>
           </button>
-          <button id="copyCodeBtn" class="secondary-button" type="button" title="Sao chép danh sách mã OTP">
+          <button id="copyCodeBtn" class="secondary-button pill" type="button" title="Sao chép danh sách mã OTP">
             <i data-lucide="key-round"></i>
-            <span>Copy OTP</span>
+            <span>Copy mã OTP</span>
           </button>
-          <button id="copyPairBtn" class="secondary-button" type="button" title="Sao chép theo dạng email|otp">
+          <button id="copyPairBtn" class="secondary-button pill primary-pill" type="button" title="Sao chép theo dạng email|otp">
             <i data-lucide="list-checks"></i>
-            <span>Email|OTP</span>
+            <span>Copy Email|OTP</span>
           </button>
         </div>
 
@@ -149,18 +232,23 @@
           <table>
             <thead>
               <tr>
-                <th>#</th>
-                <th>Email</th>
-                <th>From</th>
-                <th>Time</th>
-                <th>Content</th>
-                <th>Code</th>
-                <th>Status</th>
+                <th style="width: 50px;">#</th>
+                <th style="width: 250px;">Email</th>
+                <th style="width: 140px;">Người gửi (From)</th>
+                <th style="width: 130px;">Thời gian</th>
+                <th>Nội dung xem trước</th>
+                <th style="width: 150px;">Mã OTP</th>
+                <th style="width: 110px;">Trạng thái</th>
               </tr>
             </thead>
             <tbody id="resultBody">
               <tr>
-                <td class="empty-state" colspan="7">Chưa có kết quả</td>
+                <td class="empty-state" colspan="7">
+                  <div class="empty-state-inner">
+                    <i data-lucide="inbox"></i>
+                    <span>Chưa có dữ liệu kết quả nào</span>
+                  </div>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -168,60 +256,89 @@
       </section>
     </main>
 
+    <!-- WORKSPACE 2: 2FA Google -->
     <main id="twofaWorkspace" class="workspace hidden">
-      <section class="panel input-panel otp-panel">
+      <section class="panel input-panel otp-panel card">
         <div class="panel-head">
-          <div>
-            <h2>
+          <div class="head-title-wrap">
+            <div class="panel-icon-badge accent-purple">
               <i data-lucide="shield-check"></i>
-              <span>Lấy code 2FA Google</span>
-            </h2>
-            <p id="totpStatus">Sẵn sàng</p>
+            </div>
+            <div>
+              <h2>Tạo mã 2FA Google (TOTP)</h2>
+              <p class="panel-subtitle">Hỗ trợ mã khóa 16/32 ký tự, định dạng email|secret hoặc link otpauth://</p>
+            </div>
+          </div>
+          <div class="panel-actions">
+            <span id="totpStatus" class="status-pill-ready">Sẵn sàng</span>
           </div>
         </div>
 
-        <label class="field-label" for="totpInput">Nhập mỗi dòng 1 khóa 2FA Google</label>
-        <textarea id="totpInput" spellcheck="false" placeholder="JBSWY3DPEHPK3PXP"></textarea>
+        <div class="field-group">
+          <div class="field-label-row">
+            <label class="field-label" for="totpInput">
+              <span>Danh sách khóa bí mật 2FA (mỗi dòng 1 khóa)</span>
+              <span class="label-format-hint">Mẹo: Nhấn Ctrl + Enter để tạo mã ngay</span>
+            </label>
+          </div>
+          <textarea id="totpInput" spellcheck="false" placeholder="JBSWY3DPEHPK3PXP&#10;user@gmail.com|4S7PXXZ2EHL56V7A"></textarea>
+        </div>
 
         <div class="run-row">
           <button id="totpGenerateBtn" class="primary-button" type="button">
             <i data-lucide="key-round"></i>
-            <span>Lấy mã 2FA</span>
+            <span>Lấy mã 2FA ngay</span>
           </button>
-          <button id="totpClearBtn" class="danger-button" type="button">
-            <i data-lucide="x"></i>
-            <span>Xóa</span>
+          <button id="totpClearBtn" class="ghost-button" type="button" title="Xóa dữ liệu">
+            <i data-lucide="eraser"></i>
+            <span>Xóa danh sách</span>
           </button>
         </div>
 
+        <div class="totp-helper-bar">
+          <i data-lucide="sparkles"></i>
+          <span><b>Tính năng mới:</b> Bấm trực tiếp vào khung mã số 2FA để sao chép siêu nhanh vào clipboard!</span>
+        </div>
+
         <div id="totpGrid" class="totp-grid">
-          <div class="totp-empty">Chưa có mã 2FA</div>
+          <div class="totp-empty">
+            <i data-lucide="shield-alert"></i>
+            <span>Chưa có mã 2FA nào được nạp</span>
+          </div>
         </div>
       </section>
     </main>
 
+    <!-- WORKSPACE 3: Tách dữ liệu -->
     <main id="splitWorkspace" class="workspace hidden">
-      <section class="panel input-panel split-panel">
+      <section class="panel input-panel split-panel card">
         <div class="panel-head">
-          <div>
-            <h2>
+          <div class="head-title-wrap">
+            <div class="panel-icon-badge accent-cyan">
               <i data-lucide="columns-3"></i>
-              <span>Tách dữ liệu</span>
-            </h2>
-            <p id="splitStatus">Sẵn sàng</p>
+            </div>
+            <div>
+              <h2>Tách dữ liệu phân cách |</h2>
+              <p class="panel-subtitle">Tách các chuỗi dữ liệu theo cột và sao chép từng cột mong muốn</p>
+            </div>
+          </div>
+          <div class="panel-actions">
+            <span id="splitStatus" class="status-pill-ready">Sẵn sàng</span>
           </div>
         </div>
 
-        <label class="field-label" for="splitInput">Nhập dữ liệu ngăn cách bằng dấu |</label>
-        <textarea id="splitInput" spellcheck="false" placeholder="A|B|C|D|E"></textarea>
+        <div class="field-group">
+          <label class="field-label" for="splitInput">Dữ liệu nguồn (ngăn cách bằng dấu |)</label>
+          <textarea id="splitInput" spellcheck="false" placeholder="Email1|Pass1|Token1&#10;Email2|Pass2|Token2"></textarea>
+        </div>
 
         <div class="run-row">
           <button id="splitParseBtn" class="primary-button" type="button">
             <i data-lucide="columns-3"></i>
-            <span>Tách dữ liệu</span>
+            <span>Tách cột dữ liệu</span>
           </button>
-          <button id="splitClearBtn" class="danger-button" type="button">
-            <i data-lucide="x"></i>
+          <button id="splitClearBtn" class="ghost-button" type="button">
+            <i data-lucide="eraser"></i>
             <span>Xóa</span>
           </button>
         </div>
@@ -229,7 +346,7 @@
         <div class="split-copy-row">
           <button id="copySplitAllBtn" class="secondary-button" type="button">
             <i data-lucide="copy"></i>
-            <span>Copy tất cả</span>
+            <span>Copy tất cả dữ liệu</span>
           </button>
           <div id="splitColumnActions" class="split-column-actions"></div>
         </div>
@@ -238,13 +355,18 @@
           <table class="split-table">
             <thead>
               <tr>
-                <th>#</th>
+                <th style="width: 50px;">#</th>
                 <th>Dữ liệu</th>
               </tr>
             </thead>
             <tbody id="splitResultBody">
               <tr>
-                <td class="empty-state" colspan="2">Chưa có dữ liệu</td>
+                <td class="empty-state" colspan="2">
+                  <div class="empty-state-inner">
+                    <i data-lucide="table"></i>
+                    <span>Chưa có dữ liệu nào</span>
+                  </div>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -252,20 +374,28 @@
       </section>
     </main>
 
+    <!-- WORKSPACE 4: Gộp dữ liệu -->
     <main id="mergeWorkspace" class="workspace hidden">
-      <section class="panel input-panel merge-panel">
+      <section class="panel input-panel merge-panel card">
         <div class="panel-head">
-          <div>
-            <h2>
+          <div class="head-title-wrap">
+            <div class="panel-icon-badge accent-emerald">
               <i data-lucide="git-merge"></i>
-              <span>Gộp dữ liệu</span>
-            </h2>
-            <p id="mergeStatus">Sẵn sàng</p>
+            </div>
+            <div>
+              <h2>Gộp dữ liệu thành chuỗi |</h2>
+              <p class="panel-subtitle">Chuyển dữ liệu phân cách bởi khoảng trắng, tab hoặc xuống dòng thành định dạng chuỗi |</p>
+            </div>
+          </div>
+          <div class="panel-actions">
+            <span id="mergeStatus" class="status-pill-ready">Sẵn sàng</span>
           </div>
         </div>
 
-        <label class="field-label" for="mergeInput">Nhập mỗi dòng 1 dữ liệu, hoặc 1 dòng có các cột ngăn bằng tab/khoảng trắng</label>
-        <textarea id="mergeInput" spellcheck="false" placeholder="learoma093@gmail.com    XQQSQ8tFEhpz1q    qant j6pj xoeg galv royt abv3 z5j2 uzjo"></textarea>
+        <div class="field-group">
+          <label class="field-label" for="mergeInput">Dữ liệu nguồn (ngăn bằng tab hoặc khoảng trắng)</label>
+          <textarea id="mergeInput" spellcheck="false" placeholder="user@gmail.com    Password123    2fa_secret_key"></textarea>
+        </div>
 
         <div class="run-row">
           <button id="mergeFormatBtn" class="primary-button" type="button">
@@ -274,29 +404,45 @@
           </button>
           <button id="mergeCopyBtn" class="secondary-button" type="button">
             <i data-lucide="copy"></i>
-            <span>Copy kết quả</span>
+            <span>Sao chép kết quả</span>
           </button>
-          <button id="mergeClearBtn" class="danger-button" type="button">
-            <i data-lucide="x"></i>
+          <button id="mergeClearBtn" class="ghost-button" type="button">
+            <i data-lucide="eraser"></i>
             <span>Xóa</span>
           </button>
         </div>
 
-        <label class="field-label merge-output-label" for="mergeOutput">Kết quả gộp bằng dấu |</label>
-        <textarea id="mergeOutput" class="merge-output" spellcheck="false" readonly placeholder="A|B|C|D|E"></textarea>
+        <div class="field-group merge-output-group">
+          <div class="field-label-row">
+            <label class="field-label merge-output-label" for="mergeOutput">Kết quả sau khi gộp (|)</label>
+          </div>
+          <textarea id="mergeOutput" class="merge-output" spellcheck="false" readonly placeholder="Kết quả sẽ hiển thị ở đây..."></textarea>
+        </div>
       </section>
     </main>
 
+    <!-- Detail Dialog Modal -->
     <dialog id="contentDialog">
-      <form method="dialog" class="dialog-box">
+      <form method="dialog" class="dialog-box card">
         <div class="dialog-head">
-          <h2>Nội dung đầy đủ</h2>
-          <button class="ghost-icon" value="cancel" title="Đóng">
+          <div class="dialog-title-wrap">
+            <i data-lucide="mail-open"></i>
+            <h2>Nội dung chi tiết email</h2>
+          </div>
+          <button class="ghost-icon dialog-close-btn" value="cancel" title="Đóng cửa sổ">
             <i data-lucide="x"></i>
           </button>
         </div>
         <pre id="dialogContent"></pre>
+        <div class="dialog-footer">
+          <button class="secondary-button" value="cancel" type="submit">
+            <span>Đóng lại</span>
+          </button>
+        </div>
       </form>
     </dialog>
+
+    <!-- Toast Floating Notifications Container -->
+    <div id="toastContainer" class="toast-container" aria-live="polite"></div>
   </body>
 </html>
